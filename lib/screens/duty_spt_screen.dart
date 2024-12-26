@@ -1,4 +1,6 @@
+// lib/screens/duty_spt_screen.dart
 import 'package:flutter/material.dart';
+import 'create_duty_form.dart';
 
 class DutySPTScreen extends StatefulWidget {
   @override
@@ -6,7 +8,7 @@ class DutySPTScreen extends StatefulWidget {
 }
 
 class _DutySPTScreenState extends State<DutySPTScreen> {
-  // Dummy Data
+  // Dummy Data (15 items)
   List<Map<String, dynamic>> duties = [
     {
       "description": "Meeting with HR",
@@ -125,16 +127,20 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   @override
   void initState() {
     super.initState();
-    filteredDuties = duties; // Initially show all duties
+    filteredDuties = duties; // show all initially
   }
 
   void filterDuties(String query) {
     setState(() {
       searchQuery = query;
       filteredDuties = duties
-          .where((duty) =>
-              duty["description"]!.toLowerCase().contains(query.toLowerCase()))
+          .where(
+            (duty) => duty["description"]!
+                .toLowerCase()
+                .contains(query.toLowerCase()),
+          )
           .toList();
+      currentPage = 1; // reset to first page on filter
     });
   }
 
@@ -149,6 +155,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       duties.sort((a, b) => ascending
           ? a[columnKey].compareTo(b[columnKey])
           : b[columnKey].compareTo(a[columnKey]));
+      filterDuties(searchQuery); // re-apply filter
     });
   }
 
@@ -178,7 +185,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
           if (constraints.maxWidth > 600) {
             return Row(
               children: [
-                /// SIDEBAR - fixed width, bounded height
+                /// SIDEBAR - fixed width
                 SizedBox(
                   width: 250,
                   height: constraints.maxHeight,
@@ -198,7 +205,21 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                               ),
                             ),
                             onPressed: () {
-                              // Add functionality for creating duty form
+                              // On Desktop, also navigate to CreateDutyForm
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CreateDutyForm(
+                                    // Pass the entire list so we can add a new draft
+                                    duties: duties,
+                                  ),
+                                ),
+                              ).then((_) {
+                                // After returning, refresh
+                                setState(() {
+                                  filteredDuties = duties;
+                                });
+                              });
                             },
                             child: const Text("Create Duty Form"),
                           ),
@@ -273,7 +294,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                               onChanged: (value) {
                                 setState(() {
                                   recordsPerPage = int.parse(value!);
-                                  currentPage = 1; // Reset to first page
+                                  currentPage = 1; // reset
                                 });
                               },
                               items: const [
@@ -310,40 +331,58 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        // Table Headers
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildSortableColumn("Keterangan", "description"),
-                              _buildSortableColumn("Tanggal Tugas", "date"),
-                              _buildSortableColumn("Status", "status"),
-                              _buildSortableColumn("Jam Mulai", "startTime"),
-                              _buildSortableColumn("Jam Selesai", "endTime"),
-                            ],
-                          ),
-                        ),
-                        const Divider(),
-                        // Table Rows
+                        // Combined Horizontal Scroll for Header and Table Rows
                         Expanded(
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
-                            child: Column(
-                              children: visibleDuties.map((duty) {
-                                return _buildTableRow(
-                                  description: duty["description"],
-                                  date: duty["date"],
-                                  status: duty["status"],
-                                  startTime: duty["startTime"],
-                                  endTime: duty["endTime"],
-                                  statusColor: duty["status"] == "Approved"
-                                      ? Colors.green
-                                      : Colors.orange,
-                                );
-                              }).toList(),
+                            child: SizedBox(
+                              // min width to accommodate all columns
+                              width: 800, 
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Table Headers
+                                  Row(
+                                    children: [
+                                      _buildSortableColumn(
+                                          "Keterangan", "description"),
+                                      _buildSortableColumn("Tanggal Tugas", "date"),
+                                      _buildSortableColumn("Status", "status"),
+                                      _buildSortableColumn(
+                                          "Jam Mulai", "startTime"),
+                                      _buildSortableColumn(
+                                          "Jam Selesai", "endTime"),
+                                    ],
+                                  ),
+                                  const Divider(),
+                                  // Table Rows
+                                  Expanded(
+                                    child: ListView.builder(
+                                      itemCount: visibleDuties.length,
+                                      itemBuilder: (context, index) {
+                                        var duty = visibleDuties[index];
+                                        return _buildTableRow(
+                                          description: duty["description"],
+                                          date: duty["date"],
+                                          status: duty["status"],
+                                          startTime: duty["startTime"],
+                                          endTime: duty["endTime"],
+                                          statusColor:
+                                              duty["status"] == "Approved"
+                                                  ? Colors.green
+                                                  : (duty["status"] == "Waiting"
+                                                      ? Colors.orange
+                                                      : Colors.grey),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
+                        const SizedBox(height: 10),
                         // Pagination
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -389,10 +428,9 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
           } else {
             // Mobile layout
             return SingleChildScrollView(
-              // Scroll vertically on smaller screens
               child: Column(
                 children: [
-                  // Sidebar (shown above the main content in mobile)
+                  // Sidebar (above main content)
                   Container(
                     width: double.infinity,
                     color: const Color(0xFFf8f9fa),
@@ -403,10 +441,25 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
                             padding: const EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 20),
+                              vertical: 10,
+                              horizontal: 20,
+                            ),
                           ),
                           onPressed: () {
-                            // Add functionality for creating duty form
+                            // Go to CreateDutyForm on mobile
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreateDutyForm(
+                                  duties: duties, // pass entire list
+                                ),
+                              ),
+                            ).then((_) {
+                              // Refresh after returning
+                              setState(() {
+                                filteredDuties = duties;
+                              });
+                            });
                           },
                           child: const Text("Create Duty Form"),
                         ),
@@ -454,7 +507,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                     ),
                   ),
 
-                  // Main Content
+                  // Main Content (table, etc.)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -478,7 +531,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                               onChanged: (value) {
                                 setState(() {
                                   recordsPerPage = int.parse(value!);
-                                  currentPage = 1; // Reset to first page
+                                  currentPage = 1;
                                 });
                               },
                               items: const [
@@ -515,38 +568,50 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        // Table Headers (horizontal scroll if needed)
+                        // Horizontal scroll for table
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildSortableColumn("Keterangan", "description"),
-                              _buildSortableColumn("Tanggal Tugas", "date"),
-                              _buildSortableColumn("Status", "status"),
-                              _buildSortableColumn("Jam Mulai", "startTime"),
-                              _buildSortableColumn("Jam Selesai", "endTime"),
-                            ],
+                          child: SizedBox(
+                            width: 800,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Table Headers
+                                Row(
+                                  children: [
+                                    _buildSortableColumn(
+                                        "Keterangan", "description"),
+                                    _buildSortableColumn("Tanggal Tugas", "date"),
+                                    _buildSortableColumn("Status", "status"),
+                                    _buildSortableColumn(
+                                        "Jam Mulai", "startTime"),
+                                    _buildSortableColumn(
+                                        "Jam Selesai", "endTime"),
+                                  ],
+                                ),
+                                const Divider(),
+                                // Table Rows
+                                Column(
+                                  children: visibleDuties.map((duty) {
+                                    return _buildTableRow(
+                                      description: duty["description"],
+                                      date: duty["date"],
+                                      status: duty["status"],
+                                      startTime: duty["startTime"],
+                                      endTime: duty["endTime"],
+                                      statusColor: duty["status"] == "Approved"
+                                          ? Colors.green
+                                          : (duty["status"] == "Waiting"
+                                              ? Colors.orange
+                                              : Colors.grey),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const Divider(),
-                        // Table Rows
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Column(
-                            children: visibleDuties.map((duty) {
-                              return _buildTableRow(
-                                description: duty["description"],
-                                date: duty["date"],
-                                status: duty["status"],
-                                startTime: duty["startTime"],
-                                endTime: duty["endTime"],
-                                statusColor: duty["status"] == "Approved"
-                                    ? Colors.green
-                                    : Colors.orange,
-                              );
-                            }).toList(),
-                          ),
-                        ),
+                        const SizedBox(height: 10),
                         // Pagination
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -625,7 +690,6 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        mainAxisSize: MainAxisSize.min, // wraps content horizontally
         children: [
           SizedBox(width: 200, child: Text(description)),
           SizedBox(width: 150, child: Text(date)),
@@ -658,13 +722,13 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       child: InkWell(
         onTap: () => sortDuties(columnKey),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Text(title),
+            const SizedBox(width: 4),
             Icon(
               sortColumn == columnKey
                   ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
-                  : Icons.arrow_downward,
+                  : Icons.arrow_downward, // default
               size: 16,
             ),
           ],
@@ -673,4 +737,3 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     );
   }
 }
-
