@@ -1,8 +1,10 @@
 // lib/screens/send_form_duty_screen.dart
 import 'package:flutter/material.dart';
+import 'main_screen.dart';
+import 'duty_spt_screen.dart';
+import 'duty_detail_screen.dart';
 
 class SendFormDutyScreen extends StatefulWidget {
-  /// The full list of duties (including newly sent ones).
   final List<Map<String, dynamic>> duties;
 
   const SendFormDutyScreen({
@@ -15,25 +17,23 @@ class SendFormDutyScreen extends StatefulWidget {
 }
 
 class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
-  // Default to "Waiting" so it matches your "All Waiting Duty in 2024"
+  // By default, show "Waiting" duties
   String _selectedStatus = "Waiting";
 
   // Sorting
   String _sortColumn = "date";
   bool _ascending = true;
 
-  // For pagination + search
+  // Search + pagination
   String _searchQuery = "";
   int _recordsPerPage = 10;
   int _currentPage = 1;
 
-  // Filter + sort
   List<Map<String, dynamic>> get _filteredDuties {
-    // 1) Filter by selected status
+    // 1) Filter by status
     final statusFiltered = widget.duties.where((duty) {
-      if (_selectedStatus == "All") return true; 
-      // e.g. if we want only "Waiting"
-      return (duty["status"] ?? "").toString().toLowerCase() ==
+      if (_selectedStatus == "All") return true;
+      return (duty["status"] ?? "").toLowerCase() ==
           _selectedStatus.toLowerCase();
     }).toList();
 
@@ -59,13 +59,13 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allDuties = _filteredDuties;
-    final totalPages = (allDuties.length / _recordsPerPage).ceil();
+    final list = _filteredDuties;
+    final totalPages = (list.length / _recordsPerPage).ceil();
     final startIndex = (_currentPage - 1) * _recordsPerPage;
     final endIndex = startIndex + _recordsPerPage;
-    final visibleDuties = allDuties.sublist(
+    final visible = list.sublist(
       startIndex,
-      endIndex > allDuties.length ? allDuties.length : endIndex,
+      endIndex > list.length ? list.length : endIndex,
     );
 
     return Scaffold(
@@ -73,6 +73,7 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
         title: const Text("Send Form Duty Screen"),
         backgroundColor: Colors.teal,
       ),
+      drawer: _buildHamburgerDrawer(context),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -90,22 +91,19 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (constraints.maxWidth > 600) {
-                  // Desktop/tablet layout
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Sidebar
                       SizedBox(
                         width: 250,
                         child: _buildSidebar(),
                       ),
-                      // Table area
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: _buildTableSection(
-                            visibleDuties,
-                            allDuties.length,
+                            visible,
+                            list.length,
                             startIndex,
                             endIndex,
                             totalPages,
@@ -115,22 +113,20 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
                     ],
                   );
                 } else {
-                  // Mobile layout (stack sidebar above table)
+                  // Mobile
                   return SingleChildScrollView(
                     child: Column(
                       children: [
-                        // Sidebar on top
                         Container(
                           width: double.infinity,
                           color: const Color(0xFFf8f9fa),
                           child: _buildSidebar(),
                         ),
-                        // Table section
                         Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: _buildTableSection(
-                            visibleDuties,
-                            allDuties.length,
+                            visible,
+                            list.length,
                             startIndex,
                             endIndex,
                             totalPages,
@@ -148,39 +144,71 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
     );
   }
 
-  // Sidebar with statuses
+  Widget _buildHamburgerDrawer(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Colors.teal),
+            child: const Text(
+              "Send Duty Menu",
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.arrow_back),
+            title: const Text("Back"),
+            onTap: () => Navigator.pop(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text("Home"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.list_alt_outlined),
+            title: const Text("Request Duty Status"),
+            onTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => DutySPTScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSidebar() {
     final allCount = widget.duties.length;
     final draftCount = widget.duties
-        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "draft")
+        .where((d) => (d["status"] ?? "").toLowerCase() == "draft")
         .length;
     final waitingCount = widget.duties
-        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "waiting")
+        .where((d) => (d["status"] ?? "").toLowerCase() == "waiting")
         .length;
     final approvedCount = widget.duties
-        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "approved")
+        .where((d) => (d["status"] ?? "").toLowerCase() == "approved")
         .length;
     final rejectedCount = widget.duties
-        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "rejected")
+        .where((d) => (d["status"] ?? "").toLowerCase() == "rejected")
         .length;
-    // Returned if you want, etc.
 
     return Container(
       color: const Color(0xFFf8f9fa),
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          // Example "Create Duty Form" button
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal,
-              padding: const EdgeInsets.symmetric(
-                vertical: 10,
-                horizontal: 20,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
             ),
             onPressed: () {
-              // Possibly navigate to CreateDutyForm again
+              // Possibly navigate to CreateDutyForm if you want
             },
             child: const Text("Create Duty Form"),
           ),
@@ -189,21 +217,15 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
           const SizedBox(height: 10),
           _buildStatusItem("All", allCount, Colors.teal),
           const Divider(),
-          const Text(
-            "AS A CONCEPTOR / MAKER",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          const Text("AS A CONCEPTOR / MAKER", style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           _buildStatusItem("Draft", draftCount, Colors.grey),
           _buildStatusItem("Waiting", waitingCount, Colors.orange),
-          _buildStatusItem("Returned", 0, Colors.blue), // example
+          _buildStatusItem("Returned", 0, Colors.blue),
           _buildStatusItem("Approved", approvedCount, Colors.green),
           _buildStatusItem("Rejected", rejectedCount, Colors.red),
           const Divider(),
-          const Text(
-            "AS AN APPROVAL",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          const Text("AS AN APPROVAL", style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           _buildStatusItem("Need Approve", 0, Colors.orange),
           _buildStatusItem("Return", 0, Colors.blue),
@@ -214,7 +236,6 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
     );
   }
 
-  // A single row in the sidebar
   Widget _buildStatusItem(String status, int count, Color color) {
     return InkWell(
       onTap: () {
@@ -243,9 +264,8 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
     );
   }
 
-  // Table section with search, pagination, etc.
   Widget _buildTableSection(
-    List<Map<String, dynamic>> visibleDuties,
+    List<Map<String, dynamic>> visible,
     int totalCount,
     int startIndex,
     int endIndex,
@@ -254,19 +274,14 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Title depends on status
         Text(
           _selectedStatus == "All"
               ? "All Duty in 2024"
               : "All $_selectedStatus Duty in 2024",
-          style: const TextStyle(
-            fontSize: 18, 
-            fontWeight: FontWeight.bold
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 20),
-
-        // Records per page + search
+        // records + search
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -306,14 +321,13 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
         ),
         const SizedBox(height: 10),
 
-        // Horizontal scroll for table
+        // table
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SizedBox(
             width: 800,
             child: Column(
               children: [
-                // Table headers
                 Row(
                   children: [
                     _buildSortableHeader("Keterangan", "description", 200),
@@ -324,11 +338,8 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
                   ],
                 ),
                 const Divider(),
-                // Table rows
                 Column(
-                  children: visibleDuties.map((duty) {
-                    return _buildTableRow(duty);
-                  }).toList(),
+                  children: visible.map(_buildTableRow).toList(),
                 ),
               ],
             ),
@@ -336,7 +347,7 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
         ),
         const SizedBox(height: 10),
 
-        // Pagination
+        // pagination
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -349,22 +360,14 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
               children: [
                 TextButton(
                   onPressed: _currentPage > 1
-                      ? () {
-                          setState(() {
-                            _currentPage--;
-                          });
-                        }
+                      ? () => setState(() => _currentPage--)
                       : null,
                   child: const Text("Previous"),
                 ),
                 Text("Page $_currentPage of $totalPages"),
                 TextButton(
                   onPressed: _currentPage < totalPages
-                      ? () {
-                          setState(() {
-                            _currentPage++;
-                          });
-                        }
+                      ? () => setState(() => _currentPage++)
                       : null,
                   child: const Text("Next"),
                 ),
@@ -376,7 +379,6 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
     );
   }
 
-  // Sortable header
   Widget _buildSortableHeader(String title, String columnKey, double width) {
     return InkWell(
       onTap: () {
@@ -407,15 +409,14 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
     );
   }
 
-  // Single row
   Widget _buildTableRow(Map<String, dynamic> duty) {
     final description = duty["description"] ?? "";
     final date = duty["date"] ?? "";
-    final status = duty["status"] ?? "Waiting";
+    final status = duty["status"] ?? "";
     final startTime = duty["startTime"] ?? "";
     final endTime = duty["endTime"] ?? "";
 
-    // Color by status
+    // pick color
     Color statusColor = Colors.grey;
     if (status.toLowerCase() == "approved") {
       statusColor = Colors.green;
@@ -427,30 +428,40 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
       statusColor = Colors.blueGrey;
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          SizedBox(width: 200, child: Text(description)),
-          SizedBox(width: 150, child: Text(date)),
-          SizedBox(
-            width: 120,
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: statusColor,
-                borderRadius: BorderRadius.circular(5),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-              child: Text(
-                status,
-                style: const TextStyle(color: Colors.white),
+    return InkWell(
+      onTap: () {
+        // On tap, open detail
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DutyDetailScreen(duty: duty, allDuties: widget.duties),
+          ),
+        ).then((_) {
+          setState(() {});
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          children: [
+            SizedBox(width: 200, child: Text(description)),
+            SizedBox(width: 150, child: Text(date)),
+            SizedBox(
+              width: 120,
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                child: Text(status, style: const TextStyle(color: Colors.white)),
               ),
             ),
-          ),
-          SizedBox(width: 100, child: Text(startTime)),
-          SizedBox(width: 100, child: Text(endTime)),
-        ],
+            SizedBox(width: 100, child: Text(startTime)),
+            SizedBox(width: 100, child: Text(endTime)),
+          ],
+        ),
       ),
     );
   }

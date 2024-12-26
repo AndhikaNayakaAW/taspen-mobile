@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 import 'saved_form_duty_screen.dart';
 import 'send_form_duty_screen.dart';
 
+// For the Home button in drawer
+import 'main_screen.dart';
+// For the Request Duty Status in drawer
+import 'duty_spt_screen.dart';
+
 class CreateDutyForm extends StatefulWidget {
-  // Instead of onDutyCreated, we now pass the entire duties list
+  /// We pass the entire duties list so we can add a new draft or waiting item
   final List<Map<String, dynamic>> duties;
 
   const CreateDutyForm({
@@ -17,7 +22,7 @@ class CreateDutyForm extends StatefulWidget {
 }
 
 class _CreateDutyFormState extends State<CreateDutyForm> {
-  // ----- DUMMY DATA (for names / employees & approvers) -----
+  // ----- DUMMY DATA (for employees & approvers) -----
   final List<Map<String, String>> _employeeList = [
     {"id": "80019", "name": "HENRISA YUNAN LUBIS (IT DIVISION HEAD)"},
     {"id": "3941", "name": "MOHAMMAD RAMDAN (IT PLANNING & BUDGETING STAFF)"},
@@ -32,12 +37,16 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
     {"id": "60003", "name": "Robert Brown (COO)"},
   ];
 
-  // We track multiple "Name & Description" rows in one list
+  // Multiple "Name & Description" rows
   List<Map<String, String>> _namesAndDescriptions = [
-    {"employeeId": "", "employeeName": "", "description": ""}
+    {
+      "employeeId": "",
+      "employeeName": "",
+      "description": "",
+    }
   ];
 
-  // Single approver
+  // Single approver (id)
   String? _selectedApproverId;
 
   // Duty date/time
@@ -82,6 +91,8 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   }
 
   // ========== BUTTON HANDLERS ==========
+
+  /// Reset the entire form
   void _resetForm() {
     setState(() {
       _namesAndDescriptions = [
@@ -95,9 +106,11 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
     });
   }
 
+  /// Save as Draft
   void _saveForm() {
-    // Construct new duty data
     final dutyData = {
+      // For demonstration, let's store "createdBy" as "andhika.nayaka"
+      "createdBy": "andhika.nayaka",
       "namesAndDescriptions": _namesAndDescriptions,
       "approverId": _selectedApproverId,
       "dutyDate": _selectedDutyDate?.toIso8601String() ?? "",
@@ -116,46 +129,57 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
       "status": "Draft",
     };
 
-    // Add to the shared list
     widget.duties.add(dutyData);
 
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Duty Form Saved!")),
+      const SnackBar(content: Text("Duty Form Saved! (Draft)")),
     );
 
-    // Navigate to SavedFormDutyScreen with the entire updated list
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SavedFormDutyScreen(
-          duties: widget.duties,
-        ),
+        builder: (_) => SavedFormDutyScreen(duties: widget.duties),
       ),
     );
   }
 
-void _sendToApprover() {
-  final dutyData = {
-    // all your fields...
-    "status": "Waiting",
-  };
-  widget.duties.add(dutyData);
-  
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("Duty Form Sent to Approver!")),
-  );
-  
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => SendFormDutyScreen(duties: widget.duties),
-    ),
-  );
-}
+  /// Send to Approver -> status=Waiting
+  void _sendToApprover() {
+    final dutyData = {
+      "createdBy": "andhika.nayaka",
+      "namesAndDescriptions": _namesAndDescriptions,
+      "approverId": _selectedApproverId,
+      "dutyDate": _selectedDutyDate?.toIso8601String() ?? "",
+      "startTime": _startTime == null
+          ? ""
+          : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
+      "endTime": _endTime == null
+          ? ""
+          : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
+      "transport": _selectedTransport ?? "",
+      "description": _namesAndDescriptions.first["description"] ?? "Untitled",
+      "date": _selectedDutyDate == null
+          ? ""
+          : "${_selectedDutyDate!.year}-${_selectedDutyDate!.month.toString().padLeft(2, '0')}-${_selectedDutyDate!.day.toString().padLeft(2, '0')}",
+      "status": "Waiting",
+    };
 
+    widget.duties.add(dutyData);
 
-  // ========== UI BUILD ==========
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Duty Form Sent to Approver! (Waiting)")),
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SendFormDutyScreen(duties: widget.duties),
+      ),
+    );
+  }
+
+  // ========== UI BUILD WITH HAMBURGER MENU ==========
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,6 +187,7 @@ void _sendToApprover() {
         title: const Text("Form Duty"),
         backgroundColor: Colors.teal,
       ),
+      drawer: _buildHamburgerDrawer(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -237,7 +262,6 @@ void _sendToApprover() {
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 10,
-              runSpacing: 8,
               children: [
                 const Text(
                   "Duty Date:",
@@ -279,7 +303,10 @@ void _sendToApprover() {
                   children: [
                     const Text(
                       "Start Time:",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     InkWell(
                       onTap: () => _pickTime(isStart: true),
@@ -309,7 +336,10 @@ void _sendToApprover() {
                   children: [
                     const Text(
                       "End Time:",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     InkWell(
                       onTap: () => _pickTime(isStart: false),
@@ -381,23 +411,17 @@ void _sendToApprover() {
               children: [
                 ElevatedButton(
                   onPressed: _resetForm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                   child: const Text("Reset"),
                 ),
                 ElevatedButton(
                   onPressed: _saveForm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
                   child: const Text("Save"),
                 ),
                 ElevatedButton(
                   onPressed: _sendToApprover,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                   child: const Text("Send to Approver"),
                 ),
               ],
@@ -408,6 +432,7 @@ void _sendToApprover() {
     );
   }
 
+  // Add multiple rows
   void _addNameField() {
     setState(() {
       _namesAndDescriptions.add({
@@ -418,6 +443,7 @@ void _sendToApprover() {
     });
   }
 
+  // Build each row for Name + Description
   Widget _buildNameDescriptionRow(int index) {
     final nameDesc = _namesAndDescriptions[index];
 
@@ -428,7 +454,7 @@ void _sendToApprover() {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row for "Name" selection + Remove Button
+            // Row for "Name" selection + remove
             Row(
               children: [
                 Expanded(
@@ -462,6 +488,7 @@ void _sendToApprover() {
                   ),
                 ),
                 const SizedBox(width: 10),
+                // Remove button if more than 1 row
                 if (_namesAndDescriptions.length > 1)
                   IconButton(
                     icon: const Icon(Icons.remove_circle, color: Colors.red),
@@ -487,6 +514,48 @@ void _sendToApprover() {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 3b) A Drawer with "Back", "Home", "Request Duty Status"
+  Widget _buildHamburgerDrawer(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        // no padding
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Colors.teal),
+            child: const Text(
+              "Form Duty Menu",
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.arrow_back),
+            title: const Text("Back"),
+            onTap: () => Navigator.pop(context), // just close this screen
+          ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text("Home"),
+            onTap: () {
+              // Go to MainScreen
+              Navigator.pushReplacementNamed(context, '/');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.list_alt_outlined),
+            title: const Text("Request Duty Status"),
+            onTap: () {
+              // Go to DutySPTScreen
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => DutySPTScreen()),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

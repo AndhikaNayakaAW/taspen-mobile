@@ -1,8 +1,10 @@
 // lib/screens/saved_form_duty_screen.dart
 import 'package:flutter/material.dart';
+import 'duty_detail_screen.dart';
+import 'main_screen.dart';      // For the Home button
+import 'duty_spt_screen.dart'; // For the Request Duty Status
 
 class SavedFormDutyScreen extends StatefulWidget {
-  /// The full list of all duties (the 15 dummy + newly created Draft).
   final List<Map<String, dynamic>> duties;
 
   const SavedFormDutyScreen({
@@ -24,24 +26,24 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
   int _recordsPerPage = 10;
   int _currentPage = 1;
 
-  // Which status are we filtering by? (All / Draft / Waiting / Approved / Rejected)
-  String _selectedStatus = "Draft"; // or "All", if you want to show all initially
+  // Filter by status in the sidebar
+  String _selectedStatus = "Draft"; // or "All"
 
   List<Map<String, dynamic>> get _filteredDuties {
-    // 1) Filter by status
+    // Filter by status
     final statusFiltered = widget.duties.where((duty) {
       if (_selectedStatus == "All") return true;
-      return (duty["status"] ?? "").toString().toLowerCase() ==
+      return (duty["status"] ?? "").toLowerCase() ==
           _selectedStatus.toLowerCase();
     }).toList();
 
-    // 2) Filter by search
+    // Then search
     final searched = statusFiltered.where((duty) {
       final desc = (duty["description"] ?? "").toLowerCase();
       return desc.contains(_searchQuery.toLowerCase());
     }).toList();
 
-    // 3) Sort
+    // Sort
     searched.sort((a, b) {
       final aVal = a[_sortColumn] ?? "";
       final bVal = b[_sortColumn] ?? "";
@@ -57,13 +59,13 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dutiesList = _filteredDuties;
-    final totalPages = (dutiesList.length / _recordsPerPage).ceil();
+    final list = _filteredDuties;
+    final totalPages = (list.length / _recordsPerPage).ceil();
     final startIndex = (_currentPage - 1) * _recordsPerPage;
     final endIndex = startIndex + _recordsPerPage;
-    final visibleDuties = dutiesList.sublist(
+    final visible = list.sublist(
       startIndex,
-      endIndex > dutiesList.length ? dutiesList.length : endIndex,
+      endIndex > list.length ? list.length : endIndex,
     );
 
     return Scaffold(
@@ -71,10 +73,11 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
         title: const Text("Saved Form Duty Screen"),
         backgroundColor: Colors.teal,
       ),
+      drawer: _buildHamburgerDrawer(context),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Banner for "Successfully Executed"
+          // Banner
           Container(
             width: double.infinity,
             color: Colors.green[100],
@@ -84,26 +87,23 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
               style: TextStyle(color: Colors.black87),
             ),
           ),
-          // Main content (split desktop vs mobile)
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (constraints.maxWidth > 600) {
-                  // Desktop/tablet
+                  // Desktop
                   return Row(
                     children: [
-                      // Sidebar
                       SizedBox(
                         width: 250,
                         child: _buildSidebar(),
                       ),
-                      // Table area
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: _buildTableSection(
-                            visibleDuties,
-                            dutiesList.length,
+                            visible,
+                            list.length,
                             startIndex,
                             endIndex,
                             totalPages,
@@ -116,20 +116,17 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
                   // Mobile
                   return SingleChildScrollView(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Sidebar on top
                         Container(
                           width: double.infinity,
                           color: const Color(0xFFf8f9fa),
                           child: _buildSidebar(),
                         ),
-                        // Table below
                         Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: _buildTableSection(
-                            visibleDuties,
-                            dutiesList.length,
+                            visible,
+                            list.length,
                             startIndex,
                             endIndex,
                             totalPages,
@@ -147,143 +144,57 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
     );
   }
 
-  // Builds the table + pagination + search
-  Widget _buildTableSection(List<Map<String, dynamic>> visibleDuties,
-      int totalFiltered, int startIndex, int endIndex, int totalPages) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _selectedStatus == "All"
-              ? "All Duty"
-              : "Duty - $_selectedStatus Status",
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 20),
-
-        // Records dropdown + search
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            DropdownButton<String>(
-              value: _recordsPerPage.toString(),
-              onChanged: (val) {
-                setState(() {
-                  _recordsPerPage = int.parse(val!);
-                  _currentPage = 1;
-                });
-              },
-              items: const [
-                DropdownMenuItem(value: "10", child: Text("10 records / page")),
-                DropdownMenuItem(value: "25", child: Text("25 records / page")),
-                DropdownMenuItem(value: "50", child: Text("50 records / page")),
-                DropdownMenuItem(value: "100", child: Text("100 records / page")),
-              ],
-            ),
-            SizedBox(
-              width: 200,
-              child: TextField(
-                onChanged: (val) {
-                  setState(() {
-                    _searchQuery = val;
-                    _currentPage = 1;
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: "Search Keterangan",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        // Horizontal scroll for table
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: 800,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    _buildSortableHeader("Keterangan", "description", 200),
-                    _buildSortableHeader("Tanggal Tugas", "date", 150),
-                    _buildSortableHeader("Status", "status", 120),
-                    _buildSortableHeader("Jam Mulai", "startTime", 100),
-                    _buildSortableHeader("Jam Selesai", "endTime", 100),
-                  ],
-                ),
-                const Divider(),
-                // Rows
-                Column(
-                  children: visibleDuties.map((duty) {
-                    return _buildTableRow(duty);
-                  }).toList(),
-                ),
-              ],
+  Widget _buildHamburgerDrawer(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Colors.teal),
+            child: const Text(
+              "Saved Duty Menu",
+              style: TextStyle(color: Colors.white, fontSize: 20),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
-
-        // Pagination
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              "Showing ${startIndex + 1} to "
-              "${endIndex > totalFiltered ? totalFiltered : endIndex} "
-              "of $totalFiltered entries",
-            ),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: _currentPage > 1
-                      ? () {
-                          setState(() {
-                            _currentPage--;
-                          });
-                        }
-                      : null,
-                  child: const Text("Previous"),
-                ),
-                Text("Page $_currentPage of $totalPages"),
-                TextButton(
-                  onPressed: _currentPage < totalPages
-                      ? () {
-                          setState(() {
-                            _currentPage++;
-                          });
-                        }
-                      : null,
-                  child: const Text("Next"),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
+          ListTile(
+            leading: const Icon(Icons.arrow_back),
+            title: const Text("Back"),
+            onTap: () => Navigator.pop(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text("Home"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.list_alt_outlined),
+            title: const Text("Request Duty Status"),
+            onTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => DutySPTScreen()),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
-  // Sidebar with All / Draft / Waiting / Approved / Rejected
   Widget _buildSidebar() {
     final allCount = widget.duties.length;
     final draftCount = widget.duties
-        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "draft")
+        .where((d) => (d["status"] ?? "").toLowerCase() == "draft")
         .length;
     final waitingCount = widget.duties
-        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "waiting")
+        .where((d) => (d["status"] ?? "").toLowerCase() == "waiting")
         .length;
     final approvedCount = widget.duties
-        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "approved")
+        .where((d) => (d["status"] ?? "").toLowerCase() == "approved")
         .length;
     final rejectedCount = widget.duties
-        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "rejected")
+        .where((d) => (d["status"] ?? "").toLowerCase() == "rejected")
         .length;
 
     return Container(
@@ -300,11 +211,12 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
           const SizedBox(height: 10),
           _buildSidebarItem("Draft", draftCount, Colors.grey),
           _buildSidebarItem("Waiting", waitingCount, Colors.orange),
-          _buildSidebarItem("Returned", 0, Colors.blue), // example
+          _buildSidebarItem("Returned", 0, Colors.blue),
           _buildSidebarItem("Approved", approvedCount, Colors.green),
           _buildSidebarItem("Rejected", rejectedCount, Colors.red),
           const Divider(),
-          const Text("AS AN APPROVAL", style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text("AS AN APPROVAL",
+              style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           _buildSidebarItem("Need Approve", 0, Colors.orange),
           _buildSidebarItem("Return", 0, Colors.blue),
@@ -315,7 +227,6 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
     );
   }
 
-  // One row in the sidebar
   Widget _buildSidebarItem(String status, int count, Color color) {
     return InkWell(
       onTap: () {
@@ -344,7 +255,131 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
     );
   }
 
-  // Sortable header
+  Widget _buildTableSection(
+    List<Map<String, dynamic>> visible,
+    int totalCount,
+    int startIndex,
+    int endIndex,
+    int totalPages,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _selectedStatus == "All"
+              ? "All Duty"
+              : "Duty - $_selectedStatus Status",
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 20),
+        // header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            DropdownButton<String>(
+              value: _recordsPerPage.toString(),
+              onChanged: (val) {
+                setState(() {
+                  _recordsPerPage = int.parse(val!);
+                  _currentPage = 1;
+                });
+              },
+              items: const [
+                DropdownMenuItem(
+                  value: "10",
+                  child: Text("10 records / page"),
+                ),
+                DropdownMenuItem(
+                  value: "25",
+                  child: Text("25 records / page"),
+                ),
+                DropdownMenuItem(
+                  value: "50",
+                  child: Text("50 records / page"),
+                ),
+                DropdownMenuItem(
+                  value: "100",
+                  child: Text("100 records / page"),
+                ),
+              ],
+            ),
+            SizedBox(
+              width: 200,
+              child: TextField(
+                onChanged: (val) {
+                  setState(() {
+                    _searchQuery = val;
+                    _currentPage = 1;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: "Search Keterangan",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // table
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: 800,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _buildSortableHeader("Keterangan", "description", 200),
+                    _buildSortableHeader("Tanggal Tugas", "date", 150),
+                    _buildSortableHeader("Status", "status", 120),
+                    _buildSortableHeader("Jam Mulai", "startTime", 100),
+                    _buildSortableHeader("Jam Selesai", "endTime", 100),
+                  ],
+                ),
+                const Divider(),
+                Column(
+                  children: visible.map(_buildTableRow).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // pagination
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Showing ${startIndex + 1} to "
+              "${endIndex > totalCount ? totalCount : endIndex} "
+              "of $totalCount entries",
+            ),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: _currentPage > 1
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                  child: const Text("Previous"),
+                ),
+                Text("Page $_currentPage of $totalPages"),
+                TextButton(
+                  onPressed: _currentPage < totalPages
+                      ? () => setState(() => _currentPage++)
+                      : null,
+                  child: const Text("Next"),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildSortableHeader(String title, String columnKey, double width) {
     return InkWell(
       onTap: () {
@@ -375,7 +410,6 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
     );
   }
 
-  // One table row
   Widget _buildTableRow(Map<String, dynamic> duty) {
     final description = duty["description"] ?? "";
     final date = duty["date"] ?? "";
@@ -383,7 +417,7 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
     final startTime = duty["startTime"] ?? "";
     final endTime = duty["endTime"] ?? "";
 
-    // Color by status
+    // For color
     Color statusColor = Colors.grey;
     if (status.toLowerCase() == "approved") {
       statusColor = Colors.green;
@@ -395,30 +429,40 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
       statusColor = Colors.blueGrey;
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          SizedBox(width: 200, child: Text(description)),
-          SizedBox(width: 150, child: Text(date)),
-          SizedBox(
-            width: 120,
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: statusColor,
-                borderRadius: BorderRadius.circular(5),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-              child: Text(
-                status,
-                style: const TextStyle(color: Colors.white),
+    return InkWell(
+      onTap: () {
+        // Show detail
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DutyDetailScreen(duty: duty, allDuties: widget.duties),
+          ),
+        ).then((_) {
+          setState(() {});
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          children: [
+            SizedBox(width: 200, child: Text(description)),
+            SizedBox(width: 150, child: Text(date)),
+            SizedBox(
+              width: 120,
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                child: Text(status, style: const TextStyle(color: Colors.white)),
               ),
             ),
-          ),
-          SizedBox(width: 100, child: Text(startTime)),
-          SizedBox(width: 100, child: Text(endTime)),
-        ],
+            SizedBox(width: 100, child: Text(startTime)),
+            SizedBox(width: 100, child: Text(endTime)),
+          ],
+        ),
       ),
     );
   }

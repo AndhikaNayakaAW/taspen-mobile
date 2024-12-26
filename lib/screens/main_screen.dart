@@ -10,7 +10,7 @@ class MainScreen extends StatelessWidget {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60.0),
         child: Navbar(
-          username: "ANDHIKA NAYAKA",
+          username: "andhika.nayaka",
           position: "Human Capital PT TASPEN (PERSERO)",
           notificationCount: 0,
         ),

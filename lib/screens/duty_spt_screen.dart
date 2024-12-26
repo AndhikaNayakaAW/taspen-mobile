@@ -1,6 +1,7 @@
 // lib/screens/duty_spt_screen.dart
 import 'package:flutter/material.dart';
 import 'create_duty_form.dart';
+import 'duty_detail_screen.dart';
 
 class DutySPTScreen extends StatefulWidget {
   @override
@@ -134,11 +135,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     setState(() {
       searchQuery = query;
       filteredDuties = duties
-          .where(
-            (duty) => duty["description"]!
-                .toLowerCase()
-                .contains(query.toLowerCase()),
-          )
+          .where((duty) =>
+              duty["description"]!.toLowerCase().contains(query.toLowerCase()))
           .toList();
       currentPage = 1; // reset to first page on filter
     });
@@ -155,7 +153,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       duties.sort((a, b) => ascending
           ? a[columnKey].compareTo(b[columnKey])
           : b[columnKey].compareTo(a[columnKey]));
-      filterDuties(searchQuery); // re-apply filter
+      filterDuties(searchQuery); // re-apply filter after sorting
     });
   }
 
@@ -181,11 +179,11 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // If large screen (tablet/desktop)
+          // Large screen
           if (constraints.maxWidth > 600) {
             return Row(
               children: [
-                /// SIDEBAR - fixed width
+                /// Sidebar
                 SizedBox(
                   width: 250,
                   height: constraints.maxHeight,
@@ -205,17 +203,14 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                               ),
                             ),
                             onPressed: () {
-                              // On Desktop, also navigate to CreateDutyForm
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => CreateDutyForm(
-                                    // Pass the entire list so we can add a new draft
                                     duties: duties,
                                   ),
                                 ),
                               ).then((_) {
-                                // After returning, refresh
                                 setState(() {
                                   filteredDuties = duties;
                                 });
@@ -269,7 +264,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   ),
                 ),
 
-                /// MAIN CONTENT
+                /// Main Content
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -285,7 +280,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        // Header: records dropdown + search
+                        // Header: records & search
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -331,17 +326,17 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        // Combined Horizontal Scroll for Header and Table Rows
+
+                        // Table
                         Expanded(
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: SizedBox(
-                              // min width to accommodate all columns
-                              width: 800, 
+                              width: 800,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Table Headers
+                                  // Headers
                                   Row(
                                     children: [
                                       _buildSortableColumn(
@@ -355,24 +350,18 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                     ],
                                   ),
                                   const Divider(),
-                                  // Table Rows
+                                  // Rows
                                   Expanded(
                                     child: ListView.builder(
                                       itemCount: visibleDuties.length,
                                       itemBuilder: (context, index) {
-                                        var duty = visibleDuties[index];
+                                        final duty = visibleDuties[index];
                                         return _buildTableRow(
                                           description: duty["description"],
                                           date: duty["date"],
                                           status: duty["status"],
                                           startTime: duty["startTime"],
                                           endTime: duty["endTime"],
-                                          statusColor:
-                                              duty["status"] == "Approved"
-                                                  ? Colors.green
-                                                  : (duty["status"] == "Waiting"
-                                                      ? Colors.orange
-                                                      : Colors.grey),
                                         );
                                       },
                                     ),
@@ -426,11 +415,11 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
               ],
             );
           } else {
-            // Mobile layout
+            // Mobile
             return SingleChildScrollView(
               child: Column(
                 children: [
-                  // Sidebar (above main content)
+                  // Sidebar top
                   Container(
                     width: double.infinity,
                     color: const Color(0xFFf8f9fa),
@@ -446,16 +435,12 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                             ),
                           ),
                           onPressed: () {
-                            // Go to CreateDutyForm on mobile
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => CreateDutyForm(
-                                  duties: duties, // pass entire list
-                                ),
+                                builder: (context) => CreateDutyForm(duties: duties),
                               ),
                             ).then((_) {
-                              // Refresh after returning
                               setState(() {
                                 filteredDuties = duties;
                               });
@@ -468,8 +453,6 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           "ALL DUTY",
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 10),
-                        _buildStatusItem("All", duties.length, Colors.teal),
                         const Divider(),
                         const Text(
                           "AS A CONCEPTOR / MAKER",
@@ -498,7 +481,6 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           "AS AN APPROVAL",
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 10),
                         _buildStatusItem("Need Approve", 0, Colors.orange),
                         _buildStatusItem("Return", 0, Colors.blue),
                         _buildStatusItem("Approve", 0, Colors.green),
@@ -507,22 +489,17 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                     ),
                   ),
 
-                  // Main Content (table, etc.)
+                  // Main Content
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title
                         const Text(
                           "All Duty in 2024",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 20),
-                        // Header: records dropdown + search
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -568,7 +545,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        // Horizontal scroll for table
+
+                        // Table
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: SizedBox(
@@ -576,7 +554,6 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Table Headers
                                 Row(
                                   children: [
                                     _buildSortableColumn(
@@ -590,7 +567,6 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                   ],
                                 ),
                                 const Divider(),
-                                // Table Rows
                                 Column(
                                   children: visibleDuties.map((duty) {
                                     return _buildTableRow(
@@ -599,11 +575,6 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                       status: duty["status"],
                                       startTime: duty["startTime"],
                                       endTime: duty["endTime"],
-                                      statusColor: duty["status"] == "Approved"
-                                          ? Colors.green
-                                          : (duty["status"] == "Waiting"
-                                              ? Colors.orange
-                                              : Colors.grey),
                                     );
                                   }).toList(),
                                 ),
@@ -660,7 +631,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     );
   }
 
-  /// Status item (Sidebar)
+  /// Show sidebar status item
   Widget _buildStatusItem(String status, int count, Color color) {
     return Row(
       children: [
@@ -678,44 +649,67 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     );
   }
 
-  /// Table Row
+  /// Table row
   Widget _buildTableRow({
     required String description,
     required String date,
     required String status,
     required String startTime,
     required String endTime,
-    required Color statusColor,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          SizedBox(width: 200, child: Text(description)),
-          SizedBox(width: 150, child: Text(date)),
-          SizedBox(
-            width: 120,
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: statusColor,
-                borderRadius: BorderRadius.circular(5),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-              child: Text(
-                status,
-                style: const TextStyle(color: Colors.white),
+    // Choose color
+    Color statusColor = Colors.grey;
+    if (status == "Approved") statusColor = Colors.green;
+    else if (status == "Waiting") statusColor = Colors.orange;
+
+    return InkWell(
+      onTap: () {
+        final dutyData = {
+          "description": description,
+          "date": date,
+          "status": status,
+          "startTime": startTime,
+          "endTime": endTime,
+        };
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DutyDetailScreen(duty: dutyData, allDuties: duties),
+          ),
+        ).then((_) {
+          setState(() {});
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          children: [
+            SizedBox(width: 200, child: Text(description)),
+            SizedBox(width: 150, child: Text(date)),
+            SizedBox(
+              width: 120,
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                child: Text(
+                  status,
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
             ),
-          ),
-          SizedBox(width: 100, child: Text(startTime)),
-          SizedBox(width: 100, child: Text(endTime)),
-        ],
+            SizedBox(width: 100, child: Text(startTime)),
+            SizedBox(width: 100, child: Text(endTime)),
+          ],
+        ),
       ),
     );
   }
 
-  /// Sortable Column Header
+  /// Sortable column
   Widget _buildSortableColumn(String title, String columnKey) {
     return SizedBox(
       width: 150,
