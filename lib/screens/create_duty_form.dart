@@ -2,11 +2,10 @@
 import 'package:flutter/material.dart';
 import 'saved_form_duty_screen.dart';
 import 'send_form_duty_screen.dart';
-
-// For the Home button in drawer
 import 'main_screen.dart';
-// For the Request Duty Status in drawer
 import 'duty_spt_screen.dart';
+import 'duty_detail_screen.dart';
+import 'package:intl/intl.dart'; // Import intl for date formatting
 
 class CreateDutyForm extends StatefulWidget {
   /// We pass the entire duties list so we can add a new draft or waiting item
@@ -57,12 +56,22 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   // Transport
   String? _selectedTransport;
 
+  // Consistent TextStyle
+  final TextStyle _labelStyle = const TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+  );
+
+  final TextStyle _inputStyle = const TextStyle(
+    fontSize: 16,
+  );
+
   // ========== PICKERS ==========
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final result = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: _selectedDutyDate ?? now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),
     );
@@ -77,7 +86,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
     final now = TimeOfDay.now();
     final result = await showTimePicker(
       context: context,
-      initialTime: now,
+      initialTime: isStart ? (_startTime ?? now) : (_endTime ?? now),
     );
     if (result != null) {
       setState(() {
@@ -108,74 +117,135 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
 
   /// Save as Draft
   void _saveForm() {
-    final dutyData = {
-      // For demonstration, let's store "createdBy" as "andhika.nayaka"
-      "createdBy": "andhika.nayaka",
-      "namesAndDescriptions": _namesAndDescriptions,
-      "approverId": _selectedApproverId,
-      "dutyDate": _selectedDutyDate?.toIso8601String() ?? "",
-      "startTime": _startTime == null
-          ? ""
-          : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
-      "endTime": _endTime == null
-          ? ""
-          : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
-      "transport": _selectedTransport ?? "",
-      // Additional fields
-      "description": _namesAndDescriptions.first["description"] ?? "Untitled",
-      "date": _selectedDutyDate == null
-          ? ""
-          : "${_selectedDutyDate!.year}-${_selectedDutyDate!.month.toString().padLeft(2, '0')}-${_selectedDutyDate!.day.toString().padLeft(2, '0')}",
-      "status": "Draft",
-    };
+    // Validate form before saving
+    if (_validateForm()) {
+      final dutyData = {
+        // For demonstration, let's store "createdBy" as "andhika.nayaka"
+        "createdBy": "andhika.nayaka",
+        "namesAndDescriptions": _namesAndDescriptions,
+        "approverId": _selectedApproverId,
+        "dutyDate": _selectedDutyDate?.toIso8601String() ?? "",
+        "startTime": _startTime == null
+            ? ""
+            : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
+        "endTime": _endTime == null
+            ? ""
+            : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
+        "transport": _selectedTransport ?? "",
+        // Additional fields
+        "description": _namesAndDescriptions.first["description"] ?? "Untitled",
+        "date": _selectedDutyDate == null
+            ? ""
+            : "${_selectedDutyDate!.year}-${_selectedDutyDate!.month.toString().padLeft(2, '0')}-${_selectedDutyDate!.day.toString().padLeft(2, '0')}",
+        "status": "Draft",
+      };
 
-    widget.duties.add(dutyData);
+      widget.duties.add(dutyData);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Duty Form Saved! (Draft)")),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Duty Form Saved! (Draft)")),
+      );
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SavedFormDutyScreen(duties: widget.duties),
-      ),
-    );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SavedFormDutyScreen(duties: widget.duties),
+        ),
+      );
+    }
   }
 
   /// Send to Approver -> status=Waiting
   void _sendToApprover() {
-    final dutyData = {
-      "createdBy": "andhika.nayaka",
-      "namesAndDescriptions": _namesAndDescriptions,
-      "approverId": _selectedApproverId,
-      "dutyDate": _selectedDutyDate?.toIso8601String() ?? "",
-      "startTime": _startTime == null
-          ? ""
-          : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
-      "endTime": _endTime == null
-          ? ""
-          : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
-      "transport": _selectedTransport ?? "",
-      "description": _namesAndDescriptions.first["description"] ?? "Untitled",
-      "date": _selectedDutyDate == null
-          ? ""
-          : "${_selectedDutyDate!.year}-${_selectedDutyDate!.month.toString().padLeft(2, '0')}-${_selectedDutyDate!.day.toString().padLeft(2, '0')}",
-      "status": "Waiting",
-    };
+    // Validate form before sending
+    if (_validateForm()) {
+      final dutyData = {
+        "createdBy": "andhika.nayaka",
+        "namesAndDescriptions": _namesAndDescriptions,
+        "approverId": _selectedApproverId,
+        "dutyDate": _selectedDutyDate?.toIso8601String() ?? "",
+        "startTime": _startTime == null
+            ? ""
+            : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
+        "endTime": _endTime == null
+            ? ""
+            : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
+        "transport": _selectedTransport ?? "",
+        "description": _namesAndDescriptions.first["description"] ?? "Untitled",
+        "date": _selectedDutyDate == null
+            ? ""
+            : "${_selectedDutyDate!.year}-${_selectedDutyDate!.month.toString().padLeft(2, '0')}-${_selectedDutyDate!.day.toString().padLeft(2, '0')}",
+        "status": "Waiting",
+      };
 
-    widget.duties.add(dutyData);
+      widget.duties.add(dutyData);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Duty Form Sent to Approver! (Waiting)")),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Duty Form Sent to Approver! (Waiting)")),
+      );
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SendFormDutyScreen(duties: widget.duties),
-      ),
-    );
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SendFormDutyScreen(duties: widget.duties),
+        ),
+      );
+    }
+  }
+
+  /// Validate the form fields
+  bool _validateForm() {
+    // Check if at least one employee is selected and description is provided
+    for (var entry in _namesAndDescriptions) {
+      if (entry["employeeId"]!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please select an employee.")),
+        );
+        return false;
+      }
+      if (entry["description"]!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please provide a description.")),
+        );
+        return false;
+      }
+    }
+
+    // Check if approver is selected
+    if (_selectedApproverId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select an approver.")),
+      );
+      return false;
+    }
+
+    // Check if duty date is selected
+    if (_selectedDutyDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a duty date.")),
+      );
+      return false;
+    }
+
+    // Check if start and end times are selected
+    if (_startTime == null || _endTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select start and end times.")),
+      );
+      return false;
+    }
+
+    // Check if transport is selected
+    if (_selectedTransport == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a transport option.")),
+      );
+      return false;
+    }
+
+    // Additional validations can be added here
+
+    return true;
   }
 
   // ========== UI BUILD WITH HAMBURGER MENU ==========
@@ -184,7 +254,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Form Duty"),
+        title: const Text("Create Duty Form"),
         backgroundColor: Colors.teal,
       ),
       drawer: _buildHamburgerDrawer(context),
@@ -193,27 +263,8 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
         child: Column(
           children: [
             // =========== NAME(S) SECTION ===========
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 10,
-              runSpacing: 8,
-              children: [
-                const Text(
-                  "Name(s):",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _addNameField,
-                  icon: const Icon(Icons.add),
-                  label: const Text("Add"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // dynamic list of name/description fields
+            // Removed the "Name(s):" label and added a centered "+" button below the fields
+            // Dynamic list of name/description fields
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -222,19 +273,25 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                 return _buildNameDescriptionRow(index);
               },
             ),
+            const SizedBox(height: 10),
+            // Centered "+" button to add new employee-description rows
+            Align(
+              alignment: Alignment.center,
+              child: IconButton(
+                icon: const Icon(Icons.add_circle, color: Colors.teal, size: 30),
+                onPressed: _addNameField,
+                tooltip: "Add Employee",
+              ),
+            ),
             const SizedBox(height: 20),
 
             // =========== APPROVER SECTION ===========
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 10,
-              runSpacing: 8,
-              children: const [
-                Text(
-                  "Approver:",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Approver:",
+                style: _labelStyle,
+              ),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
@@ -252,6 +309,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                 });
               },
               decoration: const InputDecoration(
+                labelText: "Select Approver",
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 8.0),
               ),
@@ -259,123 +317,111 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
             const SizedBox(height: 20),
 
             // =========== DUTY DATE SECTION ===========
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 10,
-              children: [
-                const Text(
-                  "Duty Date:",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Duty Date:",
+                style: _labelStyle,
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _pickDate,
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                InkWell(
-                  onTap: _pickDate,
-                  child: Container(
-                    width: 180,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      _selectedDutyDate == null
-                          ? "Select Date"
-                          : "${_selectedDutyDate!.year}-${_selectedDutyDate!.month.toString().padLeft(2, '0')}-${_selectedDutyDate!.day.toString().padLeft(2, '0')}",
-                    ),
+                child: Text(
+                  _selectedDutyDate == null
+                      ? "Select Date"
+                      : DateFormat('dd-MM-yyyy').format(_selectedDutyDate!),
+                  style: _inputStyle,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // =========== START & END TIME SECTION ===========
+            Row(
+              children: [
+                // Start Time
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Start Time:",
+                        style: _labelStyle,
+                      ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () => _pickTime(isStart: true),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _startTime == null
+                                ? "HH:MM"
+                                : "${_formatTime(_startTime)}",
+                            style: _inputStyle,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 20),
+                // End Time
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "End Time:",
+                        style: _labelStyle,
+                      ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () => _pickTime(isStart: false),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _endTime == null
+                                ? "HH:MM"
+                                : "${_formatTime(_endTime)}",
+                            style: _inputStyle,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // =========== START & END TIME SECTION ===========
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 30,
-              runSpacing: 8,
-              children: [
-                // Start Time
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 10,
-                  children: [
-                    const Text(
-                      "Start Time:",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () => _pickTime(isStart: true),
-                      child: Container(
-                        width: 100,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _startTime == null
-                              ? "HH:MM"
-                              : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // End Time
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 10,
-                  children: [
-                    const Text(
-                      "End Time:",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () => _pickTime(isStart: false),
-                      child: Container(
-                        width: 100,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _endTime == null
-                              ? "HH:MM"
-                              : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
             // =========== TRANSPORT SECTION ===========
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 10,
-              children: const [
-                Text(
-                  "Transport:",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Transport:",
+                style: _labelStyle,
+              ),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
@@ -397,6 +443,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                 });
               },
               decoration: const InputDecoration(
+                labelText: "Select Transport",
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 8.0),
               ),
@@ -404,25 +451,49 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
             const SizedBox(height: 30),
 
             // =========== BUTTONS ===========
-            Wrap(
-              spacing: 20,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Reset Button
                 ElevatedButton(
                   onPressed: _resetForm,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text("Reset"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  ),
+                  child: const Text(
+                    "Reset",
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
+                const SizedBox(width: 20),
+                // Save Button
                 ElevatedButton(
                   onPressed: _saveForm,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                  child: const Text("Save"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  ),
+                  child: const Text(
+                    "Save",
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
+                const SizedBox(width: 20),
+                // Send to Approver Button
                 ElevatedButton(
                   onPressed: _sendToApprover,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text("Send to Approver"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  ),
+                  child: const Text(
+                    "Send to Approver",
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
               ],
             ),
@@ -449,12 +520,14 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row for "Name" selection + remove
+            // Row for "Employee" selection + remove
             Row(
               children: [
                 Expanded(
@@ -466,7 +539,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                     items: _employeeList.map((item) {
                       return DropdownMenuItem<String>(
                         value: item["id"],
-                        child: Text("${item["id"]} - ${item["name"]}"),
+                        child: Text("${item["name"]}"),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -497,10 +570,12 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                         _namesAndDescriptions.removeAt(index);
                       });
                     },
+                    tooltip: "Remove Employee",
                   ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
+            // Description Field
             TextFormField(
               initialValue: nameDesc["description"],
               onChanged: (val) {
@@ -516,6 +591,21 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
         ),
       ),
     );
+  }
+
+  /// Helper method to format time from TimeOfDay to "hh:mm a"
+  String _formatTime(TimeOfDay? time) {
+    if (time == null) return "HH:MM";
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    final format = DateFormat.jm(); //"6:00 AM"
+    return format.format(dt);
+  }
+
+  /// Helper method to format date from DateTime to "dd-MM-yyyy"
+  String _formatDate(DateTime? date) {
+    if (date == null) return "Select Date";
+    return DateFormat('dd-MM-yyyy').format(date);
   }
 
   /// 3b) A Drawer with "Back", "Home", "Request Duty Status"
