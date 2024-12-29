@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/navbar.dart';
 import 'duty_spt_screen.dart';
+import 'paidleave_cuti_screen.dart';
 
 class MainScreen extends StatelessWidget {
   @override
@@ -50,7 +51,10 @@ class MainScreen extends StatelessWidget {
               leading: const Icon(Icons.beach_access, color: Colors.teal),
               title: const Text('Paid Leave (Cuti)'),
               onTap: () {
-                // Add functionality for Paid Leave
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PaidLeaveCutiScreen()),
+                );
               },
             ),
           ],
