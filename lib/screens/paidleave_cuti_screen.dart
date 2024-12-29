@@ -1,7 +1,8 @@
 // lib/screens/paidleave_cuti_screen.dart
 
 import 'package:flutter/material.dart';
-import '../widgets/navbar.dart'; // sesuaikan path jika berbeda
+import '../widgets/custom_bottom_app_bar.dart'; // Ensure the path is correct
+import '../widgets/navbar.dart'; // Ensure the path is correct
 
 class PaidLeaveCutiScreen extends StatefulWidget {
   const PaidLeaveCutiScreen({Key? key}) : super(key: key);
@@ -11,17 +12,7 @@ class PaidLeaveCutiScreen extends StatefulWidget {
 }
 
 class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
-  // 15 dummy data
-  // Jenis cuti HANYA: 
-  // 1) IZIN SAKIT 
-  // 2) IZIN IBADAH 
-  // 3) IZIN SAKIT TANPA SERTIFIKAT 
-  // 4) IZIN SAKIT OPNAME
-  // Status: Draft, Waiting, Returned, Approved, Rejected
-  // SAP: "YES" / "NO" + Catatan / Kosong
-  // Act: misal "Kirim SAP", dsb.
-  // Data disusun agar sesuai tampilan.
-
+  // Sample data for paid leaves
   List<Map<String, dynamic>> paidLeaves = [
     {
       "datetime": "2024-12-24 09:14:00",
@@ -192,56 +183,72 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
     },
   ];
 
-  // Kolom yang akan disort
+  // Sorting and filtering variables
   String sortColumn = "datetime";
   bool ascending = true;
   String searchQuery = "";
-  int recordsPerPage = 10; // default
+  int recordsPerPage = 10; // Default records per page
   int currentPage = 1;
   List<Map<String, dynamic>> filteredPaidLeaves = [];
 
   @override
   void initState() {
     super.initState();
-    filteredPaidLeaves = paidLeaves; // tampilkan semua data di awal
+    filteredPaidLeaves = paidLeaves; // Display all data initially
   }
 
+  // Function to filter paid leaves based on search query
   void filterPaidLeaves(String query) {
     setState(() {
       searchQuery = query;
-      filteredPaidLeaves = paidLeaves
-          .where((leave) =>
-              leave["jenisCuti"].toString().toLowerCase().contains(query.toLowerCase()) ||
-              leave["nama"].toString().toLowerCase().contains(query.toLowerCase()) ||
-              leave["status"].toString().toLowerCase().contains(query.toLowerCase()))
-          .toList();
-      currentPage = 1; // reset ke halaman pertama saat filter
+      filteredPaidLeaves = paidLeaves.where((leave) {
+        return leave["jenisCuti"]
+                .toString()
+                .toLowerCase()
+                .contains(query.toLowerCase()) ||
+            leave["nama"].toString().toLowerCase().contains(query.toLowerCase()) ||
+            leave["status"].toString().toLowerCase().contains(query.toLowerCase());
+      }).toList();
+      currentPage = 1; // Reset to first page on filter
     });
   }
 
+  // Function to sort paid leaves based on column key
   void sortPaidLeaves(String columnKey) {
     setState(() {
       if (sortColumn == columnKey) {
-        ascending = !ascending;
+        ascending = !ascending; // Toggle sort order
       } else {
         sortColumn = columnKey;
         ascending = true;
       }
-      paidLeaves.sort((a, b) => ascending
-          ? a[columnKey].compareTo(b[columnKey])
-          : b[columnKey].compareTo(a[columnKey]));
-      filterPaidLeaves(searchQuery); // re-apply filter setelah sorting
+      filteredPaidLeaves.sort((a, b) {
+        var aValue = a[columnKey];
+        var bValue = b[columnKey];
+        if (aValue is String && bValue is String) {
+          return ascending
+              ? aValue.compareTo(bValue)
+              : bValue.compareTo(aValue);
+        } else if (aValue is DateTime && bValue is DateTime) {
+          return ascending
+              ? aValue.compareTo(bValue)
+              : bValue.compareTo(aValue);
+        } else {
+          return 0;
+        }
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Hitung total halaman
+    // Calculate pagination
     int totalPages = (filteredPaidLeaves.length / recordsPerPage).ceil();
     int startIndex = (currentPage - 1) * recordsPerPage;
     int endIndex = startIndex + recordsPerPage;
     if (endIndex > filteredPaidLeaves.length) endIndex = filteredPaidLeaves.length;
-    List<Map<String, dynamic>> visibleLeaves = filteredPaidLeaves.sublist(startIndex, endIndex);
+    List<Map<String, dynamic>> visibleLeaves =
+        filteredPaidLeaves.sublist(startIndex, endIndex);
 
     return Scaffold(
       appBar: PreferredSize(
@@ -281,7 +288,7 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
               leading: const Icon(Icons.logout),
               title: const Text("Log out"),
               onTap: () {
-                // TODO: implement logout
+                // TODO: Implement logout functionality
               },
             ),
           ],
@@ -289,11 +296,11 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Layout desktop/tablet
+          // Desktop/Tablet Layout
           if (constraints.maxWidth > 600) {
             return Row(
               children: [
-                // Sidebar kiri
+                // Sidebar on the left
                 SizedBox(
                   width: 250,
                   child: SingleChildScrollView(
@@ -320,21 +327,21 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                               ),
                             ),
                             onPressed: () {
-                              // TODO: Buat navigasi ke Create Leave Form
+                              // TODO: Implement navigation to Create Leave Form
                             },
                             child: const Text("Create Leave Form"),
                           ),
                           const SizedBox(height: 30),
-                          // Bagian "ALL LEAVE"
+                          // All Leave Section
                           const Text(
                             "All leave",
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 5),
-                          _buildStatusItem("All", filteredPaidLeaves.length, Colors.teal),
+                          _buildStatusItem(
+                              "All", filteredPaidLeaves.length, Colors.teal),
                           const SizedBox(height: 20),
-
-                          // Conceptor / Maker
+                          // As A Conceptor / Maker Section
                           const Text(
                             "As A Conceptor / Maker",
                             style: TextStyle(fontWeight: FontWeight.bold),
@@ -342,32 +349,41 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                           const SizedBox(height: 5),
                           _buildStatusItem(
                             "Draft",
-                            filteredPaidLeaves.where((item) => item["status"] == "Draft").length,
+                            filteredPaidLeaves
+                                .where((item) => item["status"] == "Draft")
+                                .length,
                             Colors.grey,
                           ),
                           _buildStatusItem(
                             "Waiting",
-                            filteredPaidLeaves.where((item) => item["status"] == "Waiting").length,
+                            filteredPaidLeaves
+                                .where((item) => item["status"] == "Waiting")
+                                .length,
                             Colors.orange,
                           ),
                           _buildStatusItem(
                             "Returned",
-                            filteredPaidLeaves.where((item) => item["status"] == "Returned").length,
+                            filteredPaidLeaves
+                                .where((item) => item["status"] == "Returned")
+                                .length,
                             Colors.blue,
                           ),
                           _buildStatusItem(
                             "Approved",
-                            filteredPaidLeaves.where((item) => item["status"] == "Approved").length,
+                            filteredPaidLeaves
+                                .where((item) => item["status"] == "Approved")
+                                .length,
                             Colors.green,
                           ),
                           _buildStatusItem(
                             "Rejected",
-                            filteredPaidLeaves.where((item) => item["status"] == "Rejected").length,
+                            filteredPaidLeaves
+                                .where((item) => item["status"] == "Rejected")
+                                .length,
                             Colors.red,
                           ),
                           const SizedBox(height: 20),
-
-                          // Approval
+                          // As A Approval Section
                           const Text(
                             "As A Approval",
                             style: TextStyle(fontWeight: FontWeight.bold),
@@ -382,8 +398,7 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                     ),
                   ),
                 ),
-
-                // Main content
+                // Main Content Area
                 Expanded(
                   child: Container(
                     color: Colors.white,
@@ -391,10 +406,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title "Leave Type Quota"
+                        // Title and Controls
                         Row(
                           children: [
-                            // Tabel Quota di kiri
+                            // Quota Table
                             Expanded(
                               flex: 2,
                               child: Container(
@@ -411,7 +426,8 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                                     ),
                                     const SizedBox(height: 8),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: const [
                                         Text("Quota Cuti Alasan Penting  "),
                                         Text("12"),
@@ -421,7 +437,8 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: const [
                                         Text("Quota Cuti Tahunan"),
                                         Text("18"),
@@ -434,36 +451,35 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                               ),
                             ),
                             const SizedBox(width: 20),
-
-                            // "records per page" dan Search di kanan
+                            // Records Per Page and Search
                             Expanded(
                               flex: 1,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  DropdownButton<String>(
-                                    value: recordsPerPage.toString(),
+                                  DropdownButton<int>(
+                                    value: recordsPerPage,
                                     onChanged: (value) {
                                       setState(() {
-                                        recordsPerPage = int.parse(value!);
+                                        recordsPerPage = value!;
                                         currentPage = 1;
                                       });
                                     },
                                     items: const [
                                       DropdownMenuItem(
-                                        value: "10",
+                                        value: 10,
                                         child: Text("10 records per page"),
                                       ),
                                       DropdownMenuItem(
-                                        value: "25",
+                                        value: 25,
                                         child: Text("25 records per page"),
                                       ),
                                       DropdownMenuItem(
-                                        value: "50",
+                                        value: 50,
                                         child: Text("50 records per page"),
                                       ),
                                       DropdownMenuItem(
-                                        value: "100",
+                                        value: 100,
                                         child: Text("100 records per page"),
                                       ),
                                     ],
@@ -474,10 +490,12 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                                     child: TextField(
                                       onChanged: filterPaidLeaves,
                                       decoration: InputDecoration(
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                        contentPadding: const EdgeInsets.symmetric(
+                                            horizontal: 8.0),
                                         hintText: "Search",
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(5),
+                                          borderRadius:
+                                              BorderRadius.circular(5),
                                         ),
                                       ),
                                     ),
@@ -488,35 +506,35 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-
-                        // Tabel utama
+                        // Main Table
                         Expanded(
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: SizedBox(
-                              width: 1000, // lebar agar bisa scroll horizontal
+                              width: 1000, // Adjust as needed
                               child: Column(
                                 children: [
-                                  // header
+                                  // Table Header
                                   Row(
                                     children: [
-                                      _buildSortableHeader("Description", "datetime", 350),
-                                      _buildSortableHeader("Status", "status", 150),
-                                      // SAP
+                                      _buildSortableHeader(
+                                          "Description", "datetime", 350),
+                                      _buildSortableHeader(
+                                          "Status", "status", 150),
                                       _buildSortableHeader("SAP", "sap", 230),
-                                      // Action
                                       const SizedBox(
                                         width: 100,
                                         child: Text(
                                           "Act",
-                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  const Divider(height: 2, color: Colors.black54),
-
-                                  // isi data
+                                  const Divider(
+                                      height: 2, color: Colors.black54),
+                                  // Table Rows
                                   Expanded(
                                     child: ListView.builder(
                                       itemCount: visibleLeaves.length,
@@ -531,8 +549,7 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                             ),
                           ),
                         ),
-
-                        // Pagination
+                        // Pagination Controls
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -572,11 +589,11 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
               ],
             );
           } else {
-            // Layout mobile
+            // Mobile Layout
             return SingleChildScrollView(
               child: Column(
                 children: [
-                  // Sidebar (ditampilkan di bagian atas pada mobile)
+                  // Sidebar (Displayed on top for mobile)
                   Container(
                     width: double.infinity,
                     color: const Color(0xFFf8f9fa),
@@ -601,42 +618,56 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                             ),
                           ),
                           onPressed: () {
-                            // TODO: Create Leave Form
+                            // TODO: Implement navigation to Create Leave Form
                           },
                           child: const Text("Create Leave Form"),
                         ),
                         const SizedBox(height: 20),
-                        const Text("All leave", style: TextStyle(fontWeight: FontWeight.bold)),
-                        _buildStatusItem("All", filteredPaidLeaves.length, Colors.teal),
+                        const Text("All leave",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        _buildStatusItem(
+                            "All", filteredPaidLeaves.length, Colors.teal),
                         const SizedBox(height: 20),
-                        const Text("As A Conceptor / Maker", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text("As A Conceptor / Maker",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         _buildStatusItem(
                           "Draft",
-                          filteredPaidLeaves.where((item) => item["status"] == "Draft").length,
+                          filteredPaidLeaves
+                              .where((item) => item["status"] == "Draft")
+                              .length,
                           Colors.grey,
                         ),
                         _buildStatusItem(
                           "Waiting",
-                          filteredPaidLeaves.where((item) => item["status"] == "Waiting").length,
+                          filteredPaidLeaves
+                              .where((item) => item["status"] == "Waiting")
+                              .length,
                           Colors.orange,
                         ),
                         _buildStatusItem(
                           "Returned",
-                          filteredPaidLeaves.where((item) => item["status"] == "Returned").length,
+                          filteredPaidLeaves
+                              .where((item) => item["status"] == "Returned")
+                              .length,
                           Colors.blue,
                         ),
                         _buildStatusItem(
                           "Approved",
-                          filteredPaidLeaves.where((item) => item["status"] == "Approved").length,
+                          filteredPaidLeaves
+                              .where((item) => item["status"] == "Approved")
+                              .length,
                           Colors.green,
                         ),
                         _buildStatusItem(
                           "Rejected",
-                          filteredPaidLeaves.where((item) => item["status"] == "Rejected").length,
+                          filteredPaidLeaves
+                              .where((item) => item["status"] == "Rejected")
+                              .length,
                           Colors.red,
                         ),
                         const SizedBox(height: 20),
-                        const Text("As A Approval", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text("As A Approval",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         _buildStatusItem("Need Approve", 0, Colors.orange),
                         _buildStatusItem("Return", 0, Colors.blue),
                         _buildStatusItem("Approve", 0, Colors.green),
@@ -644,14 +675,13 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                       ],
                     ),
                   ),
-
-                  // Main content
+                  // Main Content Area
                   Container(
                     color: Colors.white,
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        // Quota row
+                        // Quota and Controls
                         Container(
                           padding: const EdgeInsets.all(16.0),
                           color: const Color(0xFFf8f9fa),
@@ -666,21 +696,23 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                               ),
                               const SizedBox(height: 8),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: const [
                                   Text("Quota Cuti Alasan Penting"),
-                                  Text("12.0"),
-                                  Text("0.0"),
+                                  Text("12"),
+                                  Text("0"),
                                   Text("12"),
                                 ],
                               ),
                               const SizedBox(height: 4),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: const [
                                   Text("Quota Cuti Tahunan"),
-                                  Text("18.0"),
-                                  Text("12.0"),
+                                  Text("18"),
+                                  Text("12"),
                                   Text("6"),
                                 ],
                               ),
@@ -688,34 +720,33 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                           ),
                         ),
                         const SizedBox(height: 10),
-
-                        // Dropdown + Search
+                        // Records Per Page and Search
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            DropdownButton<String>(
-                              value: recordsPerPage.toString(),
+                            DropdownButton<int>(
+                              value: recordsPerPage,
                               onChanged: (value) {
                                 setState(() {
-                                  recordsPerPage = int.parse(value!);
+                                  recordsPerPage = value!;
                                   currentPage = 1;
                                 });
                               },
                               items: const [
                                 DropdownMenuItem(
-                                  value: "10",
+                                  value: 10,
                                   child: Text("10 records per page"),
                                 ),
                                 DropdownMenuItem(
-                                  value: "25",
+                                  value: 25,
                                   child: Text("25 records per page"),
                                 ),
                                 DropdownMenuItem(
-                                  value: "50",
+                                  value: 50,
                                   child: Text("50 records per page"),
                                 ),
                                 DropdownMenuItem(
-                                  value: "100",
+                                  value: 100,
                                   child: Text("100 records per page"),
                                 ),
                               ],
@@ -726,7 +757,8 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                               child: TextField(
                                 onChanged: filterPaidLeaves,
                                 decoration: InputDecoration(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0),
                                   hintText: "Search",
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(5),
@@ -737,41 +769,45 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-
-                        // Tabel
+                        // Main Table
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: SizedBox(
-                            width: 1000,
+                            width: 1000, // Adjust as needed
                             child: Column(
                               children: [
+                                // Table Header
                                 Row(
                                   children: [
-                                    _buildSortableHeader("Description", "datetime", 350),
-                                    _buildSortableHeader("Status", "status", 150),
+                                    _buildSortableHeader(
+                                        "Description", "datetime", 350),
+                                    _buildSortableHeader(
+                                        "Status", "status", 150),
                                     _buildSortableHeader("SAP", "sap", 230),
                                     const SizedBox(
                                       width: 100,
                                       child: Text(
                                         "Act",
-                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const Divider(height: 2, color: Colors.black54),
+                                const Divider(
+                                    height: 2, color: Colors.black54),
+                                // Table Rows
                                 Column(
-                                  children: visibleLeaves.map((item) {
-                                    return _buildTableRow(item);
-                                  }).toList(),
+                                  children: visibleLeaves
+                                      .map((item) => _buildTableRow(item))
+                                      .toList(),
                                 ),
                               ],
                             ),
                           ),
                         ),
                         const SizedBox(height: 10),
-
-                        // Pagination
+                        // Pagination Controls
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -808,15 +844,17 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                     ),
                   ),
                 ],
-              ),
-            );
-          }
-        },
-      ),
+              )
+              );
+            }
+          },
+        ),
+      // Integrate the Custom Bottom App Bar
+      bottomNavigationBar: const CustomBottomAppBar(),
     );
   }
 
-  // Widget untuk menampilkan item status di sidebar
+  // Helper Widget: Status Item in Sidebar
   Widget _buildStatusItem(String label, int count, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3.0),
@@ -837,7 +875,7 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
     );
   }
 
-  // Header tabel yang bisa diklik untuk sorting
+  // Helper Widget: Sortable Table Header
   Widget _buildSortableHeader(String title, String columnKey, double width) {
     return InkWell(
       onTap: () => sortPaidLeaves(columnKey),
@@ -862,25 +900,28 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
     );
   }
 
-  // Baris data
+  // Helper Widget: Table Row
   Widget _buildTableRow(Map<String, dynamic> item) {
-    // "Description" = gabungan datetime + NIK + nama + jenis cuti + range
+    // Description combines datetime, NIK, name, leave type, and date range
     final descWidget = RichText(
       text: TextSpan(
         style: const TextStyle(color: Colors.black),
         children: [
-          TextSpan(text: "${item["datetime"]} ${item["nik"]} | ${item["nama"]} |\n"),
+          TextSpan(
+              text:
+                  "${item["datetime"]} ${item["nik"]} | ${item["nama"]} |\n"),
           TextSpan(
             text: "${item["jenisCuti"]}\n",
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          TextSpan(text: "From ${item["fromDate"]} To ${item["toDate"]}"),
+          TextSpan(
+              text: "From ${item["fromDate"]} To ${item["toDate"]}"),
         ],
       ),
     );
 
-    // Menentukan warna label status
-    Color statusColor = Colors.grey;
+    // Determine status color
+    Color statusColor;
     switch (item["status"].toString().toLowerCase()) {
       case "draft":
         statusColor = Colors.grey;
@@ -919,7 +960,8 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                 color: statusColor,
                 borderRadius: BorderRadius.circular(5),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
               child: Text(
                 item["status"].toString(),
                 style: const TextStyle(color: Colors.white),

@@ -1,10 +1,9 @@
 // lib/screens/create_duty_form.dart
 import 'package:flutter/material.dart';
+import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
 import 'saved_form_duty_screen.dart';
 import 'send_form_duty_screen.dart';
-import 'main_screen.dart';
-import 'duty_spt_screen.dart';
-import 'duty_detail_screen.dart';
+import 'duty_detail_screen.dart'; // Ensure this is used elsewhere if needed
 import 'package:intl/intl.dart'; // Import intl for date formatting
 
 class CreateDutyForm extends StatefulWidget {
@@ -248,22 +247,15 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
     return true;
   }
 
-  // ========== UI BUILD WITH HAMBURGER MENU ==========
-
+  // ========== UI BUILD WITH BOTTOM APP BAR ==========
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Create Duty Form"),
-        backgroundColor: Colors.teal,
-      ),
-      drawer: _buildHamburgerDrawer(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // =========== NAME(S) SECTION ===========
-            // Removed the "Name(s):" label and added a centered "+" button below the fields
+            // =========== EMPLOYEE-DESCRIPTION FIELDS ===========
             // Dynamic list of name/description fields
             ListView.builder(
               shrinkWrap: true,
@@ -500,6 +492,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
           ],
         ),
       ),
+      bottomNavigationBar: const CustomBottomAppBar(),
     );
   }
 
@@ -606,47 +599,5 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   String _formatDate(DateTime? date) {
     if (date == null) return "Select Date";
     return DateFormat('dd-MM-yyyy').format(date);
-  }
-
-  /// 3b) A Drawer with "Back", "Home", "Request Duty Status"
-  Widget _buildHamburgerDrawer(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        // no padding
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Colors.teal),
-            child: const Text(
-              "Form Duty Menu",
-              style: TextStyle(color: Colors.white, fontSize: 20),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.arrow_back),
-            title: const Text("Back"),
-            onTap: () => Navigator.pop(context), // just close this screen
-          ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text("Home"),
-            onTap: () {
-              // Go to MainScreen
-              Navigator.pushReplacementNamed(context, '/');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.list_alt_outlined),
-            title: const Text("Request Duty Status"),
-            onTap: () {
-              // Go to DutySPTScreen
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => DutySPTScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-    );
   }
 }

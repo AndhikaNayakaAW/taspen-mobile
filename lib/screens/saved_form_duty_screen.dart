@@ -1,9 +1,10 @@
 // lib/screens/saved_form_duty_screen.dart
 import 'package:flutter/material.dart';
 import 'duty_detail_screen.dart';
-import 'main_screen.dart';      // For the Home button
+import 'main_screen.dart'; // For the Home button
 import 'duty_spt_screen.dart'; // For the Request Duty Status
 import 'package:intl/intl.dart'; // For date formatting
+import '../widgets/custom_bottom_app_bar.dart';
 
 class SavedFormDutyScreen extends StatefulWidget {
   final List<Map<String, dynamic>> duties;
@@ -57,12 +58,12 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
       bool matchesStartDate = _filterStartDate == null
           ? true
           : DateTime.parse(duty["date"]).isAfter(
-              _filterStartDate!.subtract(Duration(days: 1)),
+              _filterStartDate!.subtract(const Duration(days: 1)),
             );
       bool matchesEndDate = _filterEndDate == null
           ? true
           : DateTime.parse(duty["date"]).isBefore(
-              _filterEndDate!.add(Duration(days: 1)),
+              _filterEndDate!.add(const Duration(days: 1)),
             );
 
       return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate;
@@ -226,6 +227,8 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
           ),
         ],
       ),
+      // Include CustomBottomAppBar
+      bottomNavigationBar: const CustomBottomAppBar(),
     );
   }
 
@@ -249,7 +252,7 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
             leading: const Icon(Icons.home),
             title: const Text("Home"),
             onTap: () {
-              Navigator.pushReplacementNamed(context, '/');
+              Navigator.pushReplacementNamed(context, '/main');
             },
           ),
           ListTile(
@@ -258,7 +261,7 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
             onTap: () {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => DutySPTScreen()),
+                MaterialPageRoute(builder: (_) => const DutySPTScreen()),
               );
             },
           ),
@@ -382,6 +385,24 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
         // Search and Records Per Page
         if (MediaQuery.of(context).size.width > 600)
           const SizedBox(height: 10),
+
+        // Search Field (for Mobile)
+        if (MediaQuery.of(context).size.width <= 600)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: TextField(
+              decoration: const InputDecoration(
+                labelText: "Search",
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                  _currentPage = 1;
+                });
+              },
+            ),
+          ),
 
         // Table
         SingleChildScrollView(

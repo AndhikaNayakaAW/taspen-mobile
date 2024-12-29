@@ -1,8 +1,10 @@
 // lib/screens/send_form_duty_screen.dart
 import 'package:flutter/material.dart';
+import '../widgets/custom_bottom_app_bar.dart';
 import 'main_screen.dart';
 import 'duty_spt_screen.dart';
 import 'duty_detail_screen.dart';
+import 'paidleave_cuti_screen.dart'; // Ensure this import exists
 import 'package:intl/intl.dart'; // Import intl for date formatting
 
 class SendFormDutyScreen extends StatefulWidget {
@@ -18,6 +20,7 @@ class SendFormDutyScreen extends StatefulWidget {
 }
 
 class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
+  // [Existing code remains unchanged]
   // Sorting
   String _sortColumn = "date";
   bool _ascending = true;
@@ -57,12 +60,12 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
       bool matchesStartDate = _filterStartDate == null
           ? true
           : DateTime.parse(duty["date"]).isAfter(
-              _filterStartDate!.subtract(Duration(days: 1)),
+              _filterStartDate!.subtract(const Duration(days: 1)),
             );
       bool matchesEndDate = _filterEndDate == null
           ? true
           : DateTime.parse(duty["date"]).isBefore(
-              _filterEndDate!.add(Duration(days: 1)),
+              _filterEndDate!.add(const Duration(days: 1)),
             );
 
       return matchesStatus && matchesSearch && matchesStartDate && matchesEndDate;
@@ -227,6 +230,7 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const CustomBottomAppBar(),
     );
   }
 
@@ -250,17 +254,21 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
             leading: const Icon(Icons.home),
             title: const Text("Home"),
             onTap: () {
-              Navigator.pushReplacementNamed(context, '/');
+              Navigator.pushReplacementNamed(context, '/main');
             },
           ),
           ListTile(
             leading: const Icon(Icons.list_alt_outlined),
             title: const Text("Request Duty Status"),
             onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => DutySPTScreen()),
-              );
+              Navigator.pushReplacementNamed(context, '/duty-spt');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.beach_access),
+            title: const Text("Paid Leave (Cuti)"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/paid-leave');
             },
           ),
         ],

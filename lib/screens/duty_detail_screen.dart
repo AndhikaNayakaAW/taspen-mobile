@@ -1,7 +1,10 @@
 // lib/screens/duty_detail_screen.dart
 import 'package:flutter/material.dart';
+import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
 import 'duty_spt_screen.dart';
 import 'create_duty_form.dart'; // We'll use this for "edit" button if Draft
+import 'main_screen.dart';
+import 'paidleave_cuti_screen.dart';
 
 class DutyDetailScreen extends StatefulWidget {
   final Map<String, dynamic> duty;
@@ -77,7 +80,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
         title: const Text("Request Duty Detail"),
         backgroundColor: Colors.teal,
       ),
-      drawer: _buildDrawer(),
+      // Removed the Drawer to eliminate the hamburger menu
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth > 600) {
@@ -94,8 +97,50 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CreateDutyForm(duties: []),
+                            ),
+                          ).then((_) {
+                            setState(() {});
+                          });
+                        },
                         child: const Text("Create Duty Form"),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                        ),
+                        onPressed: () {
+                          // Navigate to Home Screen
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>  MainScreen(),
+                            ),
+                            (Route<dynamic> route) => false,
+                          );
+                        },
+                        child: const Text("Home"),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                        ),
+                        onPressed: () {
+                          // Navigate to Paid Leave (Cuti) Screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PaidLeaveCutiScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text("Paid Leave (Cuti)"),
                       ),
                     ],
                   ),
@@ -115,37 +160,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
           }
         },
       ),
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: ListView(
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Colors.teal),
-            child: const Text(
-              "Duty Detail Menu",
-              style: TextStyle(color: Colors.white, fontSize: 20),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.arrow_back),
-            title: const Text("Back"),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.list_alt_outlined),
-            title: const Text("Request Duty Status"),
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => DutySPTScreen()),
-              );
-            },
-          ),
-        ],
-      ),
+      bottomNavigationBar: const CustomBottomAppBar(),
     );
   }
 

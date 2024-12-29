@@ -1,11 +1,15 @@
 // lib/screens/duty_spt_screen.dart
 import 'package:flutter/material.dart';
+import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
 import 'create_duty_form.dart';
 import 'duty_detail_screen.dart';
 import 'package:intl/intl.dart';
-
+import 'main_screen.dart';
+import 'paidleave_cuti_screen.dart';
 
 class DutySPTScreen extends StatefulWidget {
+  const DutySPTScreen({Key? key}) : super(key: key);
+
   @override
   _DutySPTScreenState createState() => _DutySPTScreenState();
 }
@@ -153,11 +157,13 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
         bool matchesStartDate = filterStartDate == null
             ? true
-            : DateTime.parse(duty["date"]).isAfter(filterStartDate!.subtract(Duration(days: 1)));
+            : DateTime.parse(duty["date"]).isAfter(
+                filterStartDate!.subtract(const Duration(days: 1)));
 
         bool matchesEndDate = filterEndDate == null
             ? true
-            : DateTime.parse(duty["date"]).isBefore(filterEndDate!.add(Duration(days: 1)));
+            : DateTime.parse(duty["date"]).isBefore(
+                filterEndDate!.add(const Duration(days: 1)));
 
         return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate;
       }).toList();
@@ -231,8 +237,6 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       filterStartDate = null;
       filterEndDate = null;
       searchQuery = "";
-      // Optionally, clear the search TextField as well
-      // You might need to use a TextEditingController for that
       filterDuties();
     });
   }
@@ -249,12 +253,12 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.teal,
         elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.teal),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           "Request Duty Status",
-          style: TextStyle(color: Colors.black),
+          style: TextStyle(color: Colors.white),
         ),
       ),
       body: LayoutBuilder(
@@ -264,87 +268,76 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
             return Row(
               children: [
                 /// Sidebar
-                SizedBox(
+                Container(
                   width: 250,
-                  height: constraints.maxHeight,
-                  child: SingleChildScrollView(
-                    child: Container(
-                      color: const Color(0xFFf8f9fa),
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Create Duty Form Button
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 10,
-                                horizontal: 20,
-                              ),
+                  color: const Color(0xFFf8f9fa),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Create Duty Form Button
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 20,
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CreateDutyForm(duties: duties),
                             ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CreateDutyForm(
-                                    duties: duties,
-                                  ),
-                                ),
-                              ).then((_) {
-                                setState(() {
-                                  filterDuties();
-                                });
-                              });
-                            },
-                            child: const Text("Create Duty Form"),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            "ALL DUTY",
-                            style:
-                                TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          const SizedBox(height: 10),
-                          _buildStatusItem("All", duties.length, Colors.teal),
-                          const Divider(),
-                          const Text(
-                            "AS A CONCEPTOR / MAKER",
-                            style:
-                                TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          const SizedBox(height: 10),
-                          _buildStatusItem("Draft", 0, Colors.grey),
-                          _buildStatusItem(
-                            "Waiting",
-                            duties
-                                .where((duty) => duty["status"] == "Waiting")
-                                .length,
-                            Colors.orange,
-                          ),
-                          _buildStatusItem("Returned", 0, Colors.blue),
-                          _buildStatusItem(
-                            "Approved",
-                            duties
-                                .where((duty) => duty["status"] == "Approved")
-                                .length,
-                            Colors.green,
-                          ),
-                          _buildStatusItem("Rejected", 0, Colors.red),
-                          const Divider(),
-                          const Text(
-                            "AS AN APPROVAL",
-                            style:
-                                TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          const SizedBox(height: 10),
-                          _buildStatusItem("Need Approve", 0, Colors.orange),
-                          _buildStatusItem("Return", 0, Colors.blue),
-                          _buildStatusItem("Approve", 0, Colors.green),
-                          _buildStatusItem("Reject", 0, Colors.red),
-                        ],
+                          ).then((_) {
+                            setState(() {
+                              filterDuties();
+                            });
+                          });
+                        },
+                        child: const Text("Create Duty Form"),
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "ALL DUTY",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildStatusItem("All", filteredDuties.length, Colors.teal),
+                      const Divider(),
+                      const Text(
+                        "AS A CONCEPTOR / MAKER",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildStatusItem("Draft", duties.where((duty) => duty["status"] == "Draft").length, Colors.grey),
+                      _buildStatusItem(
+                        "Waiting",
+                        duties.where((duty) => duty["status"] == "Waiting").length,
+                        Colors.orange,
+                      ),
+                      _buildStatusItem("Returned", duties.where((duty) => duty["status"] == "Returned").length, Colors.blue),
+                      _buildStatusItem(
+                        "Approved",
+                        duties.where((duty) => duty["status"] == "Approved").length,
+                        Colors.green,
+                      ),
+                      _buildStatusItem("Rejected", duties.where((duty) => duty["status"] == "Rejected").length, Colors.red),
+                      const Divider(),
+                      const Text(
+                        "AS AN APPROVAL",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 10),
+                      _buildStatusItem("Need Approve", duties.where((duty) => duty["status"] == "Need Approve").length, Colors.orange),
+                      _buildStatusItem("Return", duties.where((duty) => duty["status"] == "Return").length, Colors.blue),
+                      _buildStatusItem("Approve", duties.where((duty) => duty["status"] == "Approve").length, Colors.green),
+                      _buildStatusItem("Reject", duties.where((duty) => duty["status"] == "Reject").length, Colors.red),
+                    ],
                   ),
                 ),
 
@@ -634,231 +627,210 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Sidebar top
-                    Container(
-                      width: double.infinity,
-                      color: const Color(0xFFf8f9fa),
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 10,
-                                horizontal: 20,
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      CreateDutyForm(duties: duties),
-                                ),
-                              ).then((_) {
-                                setState(() {
-                                  filterDuties();
-                                });
-                              });
-                            },
-                            child: const Text("Create Duty Form"),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            "ALL DUTY",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          const Divider(),
-                          const Text(
-                            "AS A CONCEPTOR / MAKER",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          const SizedBox(height: 10),
-                          _buildStatusItem("Draft", 0, Colors.grey),
-                          _buildStatusItem(
-                            "Waiting",
-                            duties
-                                .where((duty) => duty["status"] == "Waiting")
-                                .length,
-                            Colors.orange,
-                          ),
-                          _buildStatusItem("Returned", 0, Colors.blue),
-                          _buildStatusItem(
-                            "Approved",
-                            duties
-                                .where((duty) => duty["status"] == "Approved")
-                                .length,
-                            Colors.green,
-                          ),
-                          _buildStatusItem("Rejected", 0, Colors.red),
-                          const Divider(),
-                          const Text(
-                            "AS AN APPROVAL",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          const SizedBox(height: 10),
-                          _buildStatusItem("Need Approve", 0, Colors.orange),
-                          _buildStatusItem("Return", 0, Colors.blue),
-                          _buildStatusItem("Approve", 0, Colors.green),
-                          _buildStatusItem("Reject", 0, Colors.red),
-                        ],
+                    // Create Duty Form Button
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 20,
+                        ),
                       ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateDutyForm(duties: duties),
+                          ),
+                        ).then((_) {
+                          setState(() {
+                            filterDuties();
+                          });
+                        });
+                      },
+                      child: const Text("Create Duty Form"),
                     ),
-
+                    const SizedBox(height: 20),
+                    const Text(
+                      "ALL DUTY",
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const Divider(),
+                    const Text(
+                      "AS A CONCEPTOR / MAKER",
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildStatusItem("Draft", duties.where((duty) => duty["status"] == "Draft").length, Colors.grey),
+                    _buildStatusItem(
+                      "Waiting",
+                      duties.where((duty) => duty["status"] == "Waiting").length,
+                      Colors.orange,
+                    ),
+                    _buildStatusItem("Returned", duties.where((duty) => duty["status"] == "Returned").length, Colors.blue),
+                    _buildStatusItem(
+                      "Approved",
+                      duties.where((duty) => duty["status"] == "Approved").length,
+                      Colors.green,
+                    ),
+                    _buildStatusItem("Rejected", duties.where((duty) => duty["status"] == "Rejected").length, Colors.red),
+                    const Divider(),
+                    const Text(
+                      "AS AN APPROVAL",
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildStatusItem("Need Approve", duties.where((duty) => duty["status"] == "Need Approve").length, Colors.orange),
+                    _buildStatusItem("Return", duties.where((duty) => duty["status"] == "Return").length, Colors.blue),
+                    _buildStatusItem("Approve", duties.where((duty) => duty["status"] == "Approve").length, Colors.green),
+                    _buildStatusItem("Reject", duties.where((duty) => duty["status"] == "Reject").length, Colors.red),
                     const SizedBox(height: 20),
 
-                    // Main Content
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    // Title
+                    const Text(
+                      "All Duty in 2024",
+                      style: TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Filter and Search Controls
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Title
-                        const Text(
-                          "All Duty in 2024",
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold),
+                        // Filter Button
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            _openFilterModal(context);
+                          },
+                          icon: const Icon(Icons.filter_list),
+                          label: const Text("Filter"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                          ),
                         ),
-                        const SizedBox(height: 20),
 
-                        // Filter and Search Controls
+                        // Dropdown and Search
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Filter Button
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                _openFilterModal(context);
+                            DropdownButton<String>(
+                              value: recordsPerPage.toString(),
+                              onChanged: (value) {
+                                setState(() {
+                                  recordsPerPage = int.parse(value!);
+                                  currentPage = 1; // reset
+                                });
                               },
-                              icon: const Icon(Icons.filter_list),
-                              label: const Text("Filter"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal,
-                              ),
-                            ),
-
-                            // Dropdown and Search
-                            Row(
-                              children: [
-                                DropdownButton<String>(
-                                  value: recordsPerPage.toString(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      recordsPerPage = int.parse(value!);
-                                      currentPage = 1; // reset
-                                    });
-                                  },
-                                  items: const [
-                                    DropdownMenuItem(
-                                      value: "10",
-                                      child: Text("10"),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: "25",
-                                      child: Text("25"),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: "50",
-                                      child: Text("50"),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: "100",
-                                      child: Text("100"),
-                                    ),
-                                  ],
+                              items: const [
+                                DropdownMenuItem(
+                                  value: "10",
+                                  child: Text("10"),
                                 ),
-                                const SizedBox(width: 10),
-                                SizedBox(
-                                  width: 150,
-                                  child: TextField(
-                                    onChanged: (value) {
-                                      setState(() {
-                                        searchQuery = value;
-                                        filterDuties();
-                                      });
-                                    },
-                                    decoration: InputDecoration(
-                                      hintText: "Search",
-                                      prefixIcon: const Icon(Icons.search),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
+                                DropdownMenuItem(
+                                  value: "25",
+                                  child: Text("25"),
+                                ),
+                                DropdownMenuItem(
+                                  value: "50",
+                                  child: Text("50"),
+                                ),
+                                DropdownMenuItem(
+                                  value: "100",
+                                  child: Text("100"),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              width: 150,
+                              child: TextField(
+                                onChanged: (value) {
+                                  setState(() {
+                                    searchQuery = value;
+                                    filterDuties();
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  hintText: "Search",
+                                  prefixIcon: const Icon(Icons.search),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-
-                        // Duty List
-                        Column(
-                          children: visibleDuties.map((duty) {
-                            return _buildMobileDutyCard(
-                              description: duty["description"],
-                              date: duty["date"],
-                              status: duty["status"],
-                              startTime: duty["startTime"],
-                              endTime: duty["endTime"],
-                            );
-                          }).toList(),
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        // Pagination
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Showing ${startIndex + 1} to "
-                              "${endIndex > filteredDuties.length ? filteredDuties.length : endIndex} "
-                              "of ${filteredDuties.length} entries",
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            Row(
-                              children: [
-                                TextButton(
-                                  onPressed: currentPage > 1
-                                      ? () {
-                                          setState(() {
-                                            currentPage--;
-                                          });
-                                        }
-                                      : null,
-                                  child: const Text("Previous"),
-                                ),
-                                Text(
-                                  "Page $currentPage of $totalPages",
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                                TextButton(
-                                  onPressed: currentPage < totalPages
-                                      ? () {
-                                          setState(() {
-                                            currentPage++;
-                                          });
-                                        }
-                                      : null,
-                                  child: const Text("Next"),
-                                ),
-                              ],
+                              ),
                             ),
                           ],
                         ),
                       ],
                     ),
-                  ]
-                  ),
+                    const SizedBox(height: 10),
+
+                    // Duty List
+                    Column(
+                      children: visibleDuties.map((duty) {
+                        return _buildMobileDutyCard(
+                          description: duty["description"],
+                          date: duty["date"],
+                          status: duty["status"],
+                          startTime: duty["startTime"],
+                          endTime: duty["endTime"],
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Pagination
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Showing ${startIndex + 1} to "
+                          "${endIndex > filteredDuties.length ? filteredDuties.length : endIndex} "
+                          "of ${filteredDuties.length} entries",
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: currentPage > 1
+                                  ? () {
+                                      setState(() {
+                                        currentPage--;
+                                      });
+                                    }
+                                  : null,
+                              child: const Text("Previous"),
+                            ),
+                            Text(
+                              "Page $currentPage of $totalPages",
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            TextButton(
+                              onPressed: currentPage < totalPages
+                                  ? () {
+                                      setState(() {
+                                        currentPage++;
+                                      });
+                                    }
+                                  : null,
+                              child: const Text("Next"),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
+              ),
             );
           }
         },
       ),
+      bottomNavigationBar: const CustomBottomAppBar(),
     );
   }
 
