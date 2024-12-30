@@ -1,430 +1,36 @@
 // lib/screens/main_screen.dart
 import 'package:flutter/material.dart';
-import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
-import 'duty_spt_screen.dart';
-import 'paidleave_cuti_screen.dart';
-import 'create_duty_form.dart'; // Ensure this is imported for navigation
+import '../widgets/custom_bottom_app_bar.dart'; // Ensure this is imported
+// Import your other screens here if needed
+// e.g., import 'profile_screen.dart'; etc.
 
 class MainScreen extends StatelessWidget {
   const MainScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // You can use a LayoutBuilder to determine screen size and adapt UI accordingly
+    // Use LayoutBuilder to determine screen size and adapt UI accordingly
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60.0),
-        child: AppBar(
-          title: const Text(
-            "Main Screen",
-            style: TextStyle(color: Colors.white), // Set the text color to white
-          ),
-          backgroundColor: Colors.teal, // Set the AppBar background color to teal
+      appBar: AppBar(
+        backgroundColor: Colors.teal[700],
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'PT TASPEN (Persero)',
+          style: TextStyle(color: Colors.black),
         ),
       ),
-      // Removed the Drawer to eliminate the hamburger menu
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth > 600) {
-              // Desktop/Tablet: Display sidebar alongside content
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Sidebar
-                  SizedBox(
-                    width: 250,
-                    child: SingleChildScrollView(
-                      child: Container(
-                        color: const Color(0xFFf8f9fa),
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Create Duty Form Button
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                  horizontal: 20,
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const CreateDutyForm(duties: []),
-                                  ),
-                                ).then((_) {
-                                  // Handle any updates after returning from the form
-                                });
-                              },
-                              child: const Text("Create Duty Form"),
-                            ),
-                            const SizedBox(height: 20),
-                            // Additional Sidebar Items (if any)
-                            const Text(
-                              "Navigation",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            const SizedBox(height: 10),
-                            ListTile(
-                              leading:
-                                  const Icon(Icons.assignment_outlined, color: Colors.teal),
-                              title: const Text('Duty (SPT)'),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => const DutySPTScreen()),
-                                );
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.beach_access, color: Colors.teal),
-                              title: const Text('Paid Leave (Cuti)'),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => const PaidLeaveCutiScreen()),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Main Content
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Announcement Section
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Card(
-                                  elevation: 2,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          "📢 Announcement",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        ElevatedButton(
-                                          onPressed: () {},
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.teal,
-                                          ),
-                                          child: const Text("Link Absensi Kehadiran"),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        ElevatedButton(
-                                          onPressed: () {},
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.teal,
-                                          ),
-                                          child: const Text("Link Update Data Keluarga Tertunjang"),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        const Text("Jabatan anda saat ini: APPLICATION STAFF"),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              // Special Moments Section
-                              Expanded(
-                                child: Card(
-                                  elevation: 2,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          "❤️ Our Special Moment",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          child: DataTable(
-                                            columns: const [
-                                              DataColumn(label: Text('NIK')),
-                                              DataColumn(label: Text('NAMA')),
-                                              DataColumn(label: Text('JABATAN')),
-                                              DataColumn(label: Text('UNIT KERJA')),
-                                            ],
-                                            rows: const [
-                                              DataRow(cells: [
-                                                DataCell(Text('3149')),
-                                                DataCell(Text('DIAN SUKMANTO PUTRA')),
-                                                DataCell(Text('STAF DIR.DIPERBANTUKAN')),
-                                                DataCell(Text('DIREKTORAT UTAMA')),
-                                              ]),
-                                              DataRow(cells: [
-                                                DataCell(Text('3190')),
-                                                DataCell(Text('DEWI ISMAYA')),
-                                                DataCell(Text('SERVICE STAFF YOGYAKARTA')),
-                                                DataCell(Text('KANTOR CABANG YOGYAKARTA')),
-                                              ]),
-                                              DataRow(cells: [
-                                                DataCell(Text('3173')),
-                                                DataCell(Text('DESRI HARIANSYAH')),
-                                                DataCell(Text('FINANCE ADMINISTRATION STAFF PALEMBANG')),
-                                                DataCell(Text('KANTOR CABANG PALEMBANG')),
-                                              ]),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // To-Do List and Forum Discussion
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Card(
-                                  elevation: 2,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          "📝 My To-Do List",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        const Text("No tasks available"),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Card(
-                                  elevation: 2,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          "💬 Latest Forum Discussion",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        ListView(
-                                          shrinkWrap: true,
-                                          physics: const NeverScrollableScrollPhysics(),
-                                          children: const [
-                                            Text("SAP by LINA FEBRIANI"),
-                                            Text("SAP by DINI NUROHMANDANI"),
-                                            Text("SAP by MUHAMMAD YUSUF"),
-                                            Text("Perlu adanya tambahan aplikasi... by JAFAR RAJAB"),
-                                            Text("e-Office Problem by FAHRI"),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ]
-              );
-              } else {
-                // Mobile: Single column layout without sidebar
-                return SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Announcement Section
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "📢 Announcement",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal,
-                                ),
-                                child: const Text("Link Absensi Kehadiran"),
-                              ),
-                              const SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal,
-                                ),
-                                child: const Text("Link Update Data Keluarga Tertunjang"),
-                              ),
-                              const SizedBox(height: 10),
-                              const Text("Jabatan anda saat ini: APPLICATION STAFF"),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Special Moments Section
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "❤️ Our Special Moment",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: DataTable(
-                                  columns: const [
-                                    DataColumn(label: Text('NIK')),
-                                    DataColumn(label: Text('NAMA')),
-                                    DataColumn(label: Text('JABATAN')),
-                                    DataColumn(label: Text('UNIT KERJA')),
-                                  ],
-                                  rows: const [
-                                    DataRow(cells: [
-                                      DataCell(Text('3149')),
-                                      DataCell(Text('DIAN SUKMANTO PUTRA')),
-                                      DataCell(Text('STAF DIR.DIPERBANTUKAN')),
-                                      DataCell(Text('DIREKTORAT UTAMA')),
-                                    ]),
-                                    DataRow(cells: [
-                                      DataCell(Text('3190')),
-                                      DataCell(Text('DEWI ISMAYA')),
-                                      DataCell(Text('SERVICE STAFF YOGYAKARTA')),
-                                      DataCell(Text('KANTOR CABANG YOGYAKARTA')),
-                                    ]),
-                                    DataRow(cells: [
-                                      DataCell(Text('3173')),
-                                      DataCell(Text('DESRI HARIANSYAH')),
-                                      DataCell(Text('FINANCE ADMINISTRATION STAFF PALEMBANG')),
-                                      DataCell(Text('KANTOR CABANG PALEMBANG')),
-                                    ]),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // To-Do List and Forum Discussion
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "📝 My To-Do List",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              const Text("No tasks available"),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "💬 Latest Forum Discussion",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              ListView(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                children: const [
-                                  Text("SAP by LINA FEBRIANI"),
-                                  Text("SAP by DINI NUROHMANDANI"),
-                                  Text("SAP by MUHAMMAD YUSUF"),
-                                  Text("Perlu adanya tambahan aplikasi... by JAFAR RAJAB"),
-                                  Text("e-Office Problem by FAHRI"),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-            },
-          ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 600) {
+            // Desktop/Tablet: Optionally, you can keep a sidebar or other layout
+            // For simplicity, we'll display the HomePage layout
+            return _buildHomePage(context, isLargeScreen: true);
+          } else {
+            // Mobile: Single column layout
+            return _buildHomePage(context, isLargeScreen: false);
+          }
+        },
       ),
       // Add the CustomBottomAppBar only for mobile screens
       bottomNavigationBar: LayoutBuilder(
@@ -438,6 +44,186 @@ class MainScreen extends StatelessWidget {
           }
         },
       ),
+    );
+  }
+
+  Widget _buildHomePage(BuildContext context, {required bool isLargeScreen}) {
+    // You can adjust the layout based on screen size if needed
+    return Column(
+      children: [
+        // User Information Section
+        Container(
+          color: Colors.green[700],
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              const CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.grey,
+                child: Icon(
+                  Icons.person,
+                  size: 40,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Andhika Nayaka',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text('Application Staff'),
+                  Text('Divisi Teknologi Informasi'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        // Menu Grid
+        Expanded(
+          child: GridView.count(
+            crossAxisCount: isLargeScreen ? 4 : 3, // Adjust for responsiveness
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildMenuItem(context, Icons.person, 'Profil', ProfileScreen()),
+              _buildMenuItem(context, Icons.fingerprint, 'Presensi', AttendanceScreen()),
+              _buildMenuItem(context, Icons.attach_money, 'Slip Gaji', SalarySlipScreen()),
+              // Add more menu items as needed
+            ],
+          ),
+        ),
+        // Logout Button
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            onPressed: () {
+              // Implement your logout functionality here
+              _showLogoutConfirmation(context);
+            },
+            child: const Center(
+              child: Text(
+                'Log Out',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+        // Footer
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: const Text(
+            'Powered by: PT TASPEN (Persero)',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMenuItem(BuildContext context, IconData icon, String label, Widget targetScreen) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => targetScreen),
+        );
+      },
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 40, color: Colors.black),
+              const SizedBox(height: 8),
+              Text(label, style: const TextStyle(fontSize: 16)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Log Out'),
+          content: const Text('Are you sure you want to log out?'),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: const Text('Log Out'),
+              onPressed: () {
+                // Implement your logout logic here
+                Navigator.of(context).pop(); // Close the dialog
+                // Navigate to login screen or perform other actions
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// Placeholder Screens for Navigation
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Implement your Profile Screen
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profil')),
+      body: const Center(child: Text('Profile Screen')),
+    );
+  }
+}
+
+class AttendanceScreen extends StatelessWidget {
+  const AttendanceScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Implement your Attendance Screen
+    return Scaffold(
+      appBar: AppBar(title: const Text('Presensi')),
+      body: const Center(child: Text('Attendance Screen')),
+    );
+  }
+}
+
+class SalarySlipScreen extends StatelessWidget {
+  const SalarySlipScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Implement your Salary Slip Screen
+    return Scaffold(
+      appBar: AppBar(title: const Text('Slip Gaji')),
+      body: const Center(child: Text('Salary Slip Screen')),
     );
   }
 }

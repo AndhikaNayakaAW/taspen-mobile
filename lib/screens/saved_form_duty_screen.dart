@@ -155,7 +155,7 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
         title: const Text("Saved Form Duty Screen"),
         backgroundColor: Colors.teal,
       ),
-      drawer: _buildHamburgerDrawer(context),
+      // Removed the drawer property to eliminate the hamburger button
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -185,7 +185,7 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
-                          child: _buildTableSection(
+                          child: _buildCardSection(
                             visibleDuties,
                             filteredList.length,
                             startIndex,
@@ -201,7 +201,7 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
                   return SingleChildScrollView(
                     child: Column(
                       children: [
-                        // Sidebar top (can be collapsed or hidden on mobile)
+                        // Sidebar top remains for mobile users
                         Container(
                           width: double.infinity,
                           color: const Color(0xFFf8f9fa),
@@ -210,7 +210,7 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
                         ),
                         Padding(
                           padding: const EdgeInsets.all(16.0),
-                          child: _buildTableSection(
+                          child: _buildCardSection(
                             visibleDuties,
                             filteredList.length,
                             startIndex,
@@ -227,66 +227,23 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
           ),
         ],
       ),
-      // Include CustomBottomAppBar
       bottomNavigationBar: const CustomBottomAppBar(),
-    );
-  }
-
-  Widget _buildHamburgerDrawer(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Colors.teal),
-            child: const Text(
-              "Saved Duty Menu",
-              style: TextStyle(color: Colors.white, fontSize: 20),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.arrow_back),
-            title: const Text("Back"),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text("Home"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/main');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.list_alt_outlined),
-            title: const Text("Request Duty Status"),
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const DutySPTScreen()),
-              );
-            },
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildSidebar() {
     final allCount = widget.duties.length;
     final draftCount = widget.duties
-        .where((d) =>
-            (d["status"] ?? "").toString().toLowerCase() == "draft")
+        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "draft")
         .length;
     final waitingCount = widget.duties
-        .where((d) =>
-            (d["status"] ?? "").toString().toLowerCase() == "waiting")
+        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "waiting")
         .length;
     final approvedCount = widget.duties
-        .where((d) =>
-            (d["status"] ?? "").toString().toLowerCase() == "approved")
+        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "approved")
         .length;
     final rejectedCount = widget.duties
-        .where((d) =>
-            (d["status"] ?? "").toString().toLowerCase() == "rejected")
+        .where((d) => (d["status"] ?? "").toString().toLowerCase() == "rejected")
         .length;
 
     return Container(
@@ -295,36 +252,47 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              padding:
+                  const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+            ),
+            onPressed: () {
+              // Navigate to CreateDutyForm or any other relevant screen
+              // Example:
+              // Navigator.push(context, MaterialPageRoute(builder: (_) => CreateDutyForm()));
+            },
+            child: const Text("Create Duty Form"),
+          ),
+          const SizedBox(height: 20),
           const Text("ALL DUTY",
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 10),
-          _buildSidebarItem("All", allCount, Colors.teal),
+          _buildStatusItem("All", allCount, Colors.teal),
           const Divider(),
           const Text("AS A CONCEPTOR / MAKER",
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 10),
-          _buildSidebarItem("Draft", draftCount, Colors.grey),
-          _buildSidebarItem("Waiting", waitingCount, Colors.orange),
-          _buildSidebarItem("Returned", 0, Colors.blue),
-          _buildSidebarItem("Approved", approvedCount, Colors.green),
-          _buildSidebarItem("Rejected", rejectedCount, Colors.red),
+          _buildStatusItem("Draft", draftCount, Colors.grey),
+          _buildStatusItem("Waiting", waitingCount, Colors.orange),
+          _buildStatusItem("Returned", 0, Colors.blue),
+          _buildStatusItem("Approved", approvedCount, Colors.green),
+          _buildStatusItem("Rejected", rejectedCount, Colors.red),
           const Divider(),
           const Text("AS AN APPROVAL",
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 10),
-          _buildSidebarItem("Need Approve", 0, Colors.orange),
-          _buildSidebarItem("Return", 0, Colors.blue),
-          _buildSidebarItem("Approve", 0, Colors.green),
-          _buildSidebarItem("Reject", 0, Colors.red),
+          _buildStatusItem("Need Approve", 0, Colors.orange),
+          _buildStatusItem("Return", 0, Colors.blue),
+          _buildStatusItem("Approve", 0, Colors.green),
+          _buildStatusItem("Reject", 0, Colors.red),
         ],
       ),
     );
   }
 
-  Widget _buildSidebarItem(String status, int count, Color color) {
+  Widget _buildStatusItem(String status, int count, Color color) {
     return InkWell(
       onTap: () {
         setState(() {
@@ -359,7 +327,7 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
     );
   }
 
-  Widget _buildTableSection(
+  Widget _buildCardSection(
     List<Map<String, dynamic>> visibleDuties,
     int totalCount,
     int startIndex,
@@ -372,66 +340,197 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
         // Header: Title
         Text(
           _selectedStatus == "All"
-              ? "All Duty"
-              : "Duty - $_selectedStatus Status",
+              ? "All Duty in 2024"
+              : "All $_selectedStatus Duty in 2024",
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 20),
 
-        // Filter Controls (for Desktop)
-        if (MediaQuery.of(context).size.width > 600)
-          _buildFilterControlsDesktop(),
-
-        // Search and Records Per Page
-        if (MediaQuery.of(context).size.width > 600)
-          const SizedBox(height: 10),
-
-        // Search Field (for Mobile)
-        if (MediaQuery.of(context).size.width <= 600)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: "Search",
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                  _currentPage = 1;
-                });
-              },
-            ),
-          ),
-
-        // Table
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Container(
-            constraints: const BoxConstraints(
-              minWidth: 600, // Minimum width to prevent collapsing
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        // Filter and Sort Controls
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Status Filter
+            Row(
               children: [
-                // Headers
-                Row(
-                  children: [
-                    _buildSortableHeader("Keterangan", "description", 200),
-                    _buildSortableHeader("Tanggal Tugas", "date", 150),
-                    _buildSortableHeader("Status", "status", 120),
-                    // Removed "Jam Mulai" and "Jam Selesai" headers
-                  ],
+                const Text(
+                  "Status:",
+                  style: TextStyle(fontSize: 16),
                 ),
-                const Divider(thickness: 1.5),
-                // Rows
-                // Replace ListView.builder with Column to prevent unbounded width error
-                Column(
-                  children: visibleDuties.map((duty) => _buildTableRow(duty)).toList(),
+                const SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: _selectedStatus,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedStatus = value!;
+                      _currentPage = 1;
+                    });
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                      value: "All",
+                      child: Text("All"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Draft",
+                      child: Text("Draft"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Waiting",
+                      child: Text("Waiting"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Approved",
+                      child: Text("Approved"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Rejected",
+                      child: Text("Rejected"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Returned",
+                      child: Text("Returned"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Need Approve",
+                      child: Text("Need Approve"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Return",
+                      child: Text("Return"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Approve",
+                      child: Text("Approve"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Reject",
+                      child: Text("Reject"),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
+
+            // Sort Controls
+            Row(
+              children: [
+                const Text(
+                  "Sort by:",
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: _sortColumn,
+                  onChanged: (value) {
+                    if (value != null) {
+                      _sortDuties(value);
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                      value: "date",
+                      child: Text("Date"),
+                    ),
+                    DropdownMenuItem(
+                      value: "description",
+                      child: Text("Description"),
+                    ),
+                    DropdownMenuItem(
+                      value: "status",
+                      child: Text("Status"),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: Icon(
+                    _ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _ascending = !_ascending;
+                      _sortDuties(_sortColumn);
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // Search and Records Per Page
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Records Per Page
+            DropdownButton<String>(
+              value: _recordsPerPage.toString(),
+              onChanged: (value) {
+                setState(() {
+                  _recordsPerPage = int.parse(value!);
+                  _currentPage = 1; // reset
+                });
+              },
+              items: const [
+                DropdownMenuItem(
+                  value: "10",
+                  child: Text("10 records per page"),
+                ),
+                DropdownMenuItem(
+                  value: "25",
+                  child: Text("25 records per page"),
+                ),
+                DropdownMenuItem(
+                  value: "50",
+                  child: Text("50 records per page"),
+                ),
+                DropdownMenuItem(
+                  value: "100",
+                  child: Text("100 records per page"),
+                ),
+              ],
+            ),
+            // Search Field
+            SizedBox(
+              width: 200,
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                    _currentPage = 1;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: "Search",
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // Duty Cards
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: visibleDuties.length,
+          itemBuilder: (context, index) {
+            final duty = visibleDuties[index];
+            return _buildDutyCard(
+              description: duty["description"],
+              date: duty["date"],
+              status: duty["status"],
+              startTime: duty["startTime"],
+              endTime: duty["endTime"],
+            );
+          },
         ),
 
         const SizedBox(height: 10),
@@ -480,312 +579,15 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
     );
   }
 
-  Widget _buildFilterControlsDesktop() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Status Filter
-        Row(
-          children: [
-            const Text(
-              "Status:",
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(width: 10),
-            DropdownButton<String>(
-              value: _selectedStatus,
-              onChanged: (value) {
-                setState(() {
-                  _selectedStatus = value!;
-                  _currentPage = 1;
-                });
-              },
-              items: const [
-                DropdownMenuItem(
-                  value: "All",
-                  child: Text("All"),
-                ),
-                DropdownMenuItem(
-                  value: "Draft",
-                  child: Text("Draft"),
-                ),
-                DropdownMenuItem(
-                  value: "Waiting",
-                  child: Text("Waiting"),
-                ),
-                DropdownMenuItem(
-                  value: "Approved",
-                  child: Text("Approved"),
-                ),
-                DropdownMenuItem(
-                  value: "Rejected",
-                  child: Text("Rejected"),
-                ),
-                DropdownMenuItem(
-                  value: "Returned",
-                  child: Text("Returned"),
-                ),
-                DropdownMenuItem(
-                  value: "Need Approve",
-                  child: Text("Need Approve"),
-                ),
-                DropdownMenuItem(
-                  value: "Return",
-                  child: Text("Return"),
-                ),
-                DropdownMenuItem(
-                  value: "Approve",
-                  child: Text("Approve"),
-                ),
-                DropdownMenuItem(
-                  value: "Reject",
-                  child: Text("Reject"),
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // Date Range Filter
-        Row(
-          children: [
-            // Start Date
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  _filterStartDate == null
-                      ? "Start Date"
-                      : DateFormat('dd-MM-yyyy').format(_filterStartDate!),
-                  style: const TextStyle(fontSize: 16),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () {
-                    _selectDate(context, true);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(width: 10),
-            // End Date
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  _filterEndDate == null
-                      ? "End Date"
-                      : DateFormat('dd-MM-yyyy').format(_filterEndDate!),
-                  style: const TextStyle(fontSize: 16),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () {
-                    _selectDate(context, false);
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // Clear Filters Button
-        ElevatedButton(
-          onPressed: _clearFilters,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.redAccent,
-            padding: const EdgeInsets.symmetric(
-              vertical: 8,
-              horizontal: 12,
-            ),
-          ),
-          child: const Text(
-            "Clear Filters",
-            style: TextStyle(fontSize: 14),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSortableHeaderDesktop(String title, String columnKey, double width) {
-    return InkWell(
-      onTap: () {
-        _sortDuties(columnKey);
-      },
-      child: SizedBox(
-        width: width,
-        child: Row(
-          children: [
-            Text(
-              title,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              _sortColumn == columnKey
-                  ? (_ascending ? Icons.arrow_upward : Icons.arrow_downward)
-                  : Icons.unfold_more,
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTableRow(Map<String, dynamic> duty) {
-    final description = duty["description"] ?? "";
-    final date = duty["date"] ?? "";
-    final status = duty["status"] ?? "";
-    final startTime = duty["startTime"] ?? "";
-    final endTime = duty["endTime"] ?? "";
-
-    // For color
-    Color statusColor = Colors.grey;
-    if (status.toString().toLowerCase() == "approved") {
-      statusColor = Colors.green;
-    } else if (status.toString().toLowerCase() == "waiting") {
-      statusColor = Colors.orange;
-    } else if (status.toString().toLowerCase() == "rejected") {
-      statusColor = Colors.red;
-    } else if (status.toString().toLowerCase() == "draft") {
-      statusColor = Colors.blueGrey;
-    }
-
-    return InkWell(
-      onTap: () {
-        // Show detail
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DutyDetailScreen(
-              duty: duty,
-              allDuties: widget.duties,
-            ),
-          ),
-        ).then((_) {
-          setState(() {});
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          children: [
-            // Keterangan with time range
-            SizedBox(
-              width: 200,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    description,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    "${_formatTime(startTime)} - ${_formatTime(endTime)}",
-                    style:
-                        const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            // Tanggal Tugas
-            SizedBox(
-              width: 150,
-              child: Text(
-                _formatDate(date),
-                style: const TextStyle(fontSize: 14),
-              ),
-            ),
-            // Status
-            SizedBox(
-              width: 120,
-              child: Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Helper method to format time from "HH:mm:ss" to "HH:mm"
-  String _formatTime(String time) {
-    try {
-      DateTime parsedTime = DateTime.parse("1970-01-01T$time");
-      return "${parsedTime.hour.toString().padLeft(2, '0')}:${parsedTime.minute.toString().padLeft(2, '0')}";
-    } catch (e) {
-      return time;
-    }
-  }
-
-  /// Helper method to format date from "YYYY-MM-DD" to a more readable format
-  String _formatDate(String date) {
-    try {
-      DateTime parsedDate = DateTime.parse(date);
-      return DateFormat('dd-MM-yyyy').format(parsedDate);
-    } catch (e) {
-      return date;
-    }
-  }
-
-  /// Sortable column for large screens
-  Widget _buildSortableHeader(String title, String columnKey, double width) {
-    return InkWell(
-      onTap: () {
-        _sortDuties(columnKey);
-      },
-      child: SizedBox(
-        width: width,
-        child: Row(
-          children: [
-            Text(
-              title,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              _sortColumn == columnKey
-                  ? (_ascending ? Icons.arrow_upward : Icons.arrow_downward)
-                  : Icons.unfold_more,
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Card-like duty item for mobile screens
-  Widget _buildMobileDutyCard({
+  /// Card-like duty item for both desktop and mobile screens
+  Widget _buildDutyCard({
     required String description,
     required String date,
     required String status,
     required String startTime,
     required String endTime,
   }) {
-    // Choose color
+    // Choose color based on status
     Color statusColor = Colors.grey;
     if (status.toString().toLowerCase() == "approved") {
       statusColor = Colors.green;
@@ -881,143 +683,23 @@ class _SavedFormDutyScreenState extends State<SavedFormDutyScreen> {
     );
   }
 
-  /// Opens the filter modal for mobile screens
-  void _openFilterModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Padding(
-          padding:
-              const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Status Filter
-              Row(
-                children: [
-                  const Text(
-                    "Status:",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: DropdownButton<String>(
-                      value: _selectedStatus,
-                      isExpanded: true,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedStatus = value!;
-                          _currentPage = 1;
-                        });
-                        Navigator.pop(context);
-                      },
-                      items: const [
-                        DropdownMenuItem(
-                          value: "All",
-                          child: Text("All"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Draft",
-                          child: Text("Draft"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Waiting",
-                          child: Text("Waiting"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Approved",
-                          child: Text("Approved"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Rejected",
-                          child: Text("Rejected"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Returned",
-                          child: Text("Returned"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Need Approve",
-                          child: Text("Need Approve"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Return",
-                          child: Text("Return"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Approve",
-                          child: Text("Approve"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Reject",
-                          child: Text("Reject"),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+  /// Helper method to format time from "HH:mm:ss" to "HH:mm"
+  String _formatTime(String time) {
+    try {
+      DateTime parsedTime = DateTime.parse("1970-01-01T$time");
+      return "${parsedTime.hour.toString().padLeft(2, '0')}:${parsedTime.minute.toString().padLeft(2, '0')}";
+    } catch (e) {
+      return time;
+    }
+  }
 
-              // Date Range Filter
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    _filterStartDate == null
-                        ? "Start Date"
-                        : DateFormat('dd-MM-yyyy').format(_filterStartDate!),
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () {
-                      _selectDate(context, true);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    _filterEndDate == null
-                        ? "End Date"
-                        : DateFormat('dd-MM-yyyy').format(_filterEndDate!),
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () {
-                      _selectDate(context, false);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Clear Filters Button
-              ElevatedButton(
-                onPressed: () {
-                  _clearFilters();
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 20,
-                  ),
-                ),
-                child: const Text("Clear Filters"),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  /// Helper method to format date from "YYYY-MM-DD" to "dd-MM-yyyy"
+  String _formatDate(String date) {
+    try {
+      DateTime parsedDate = DateTime.parse(date);
+      return DateFormat('dd-MM-yyyy').format(parsedDate);
+    } catch (e) {
+      return date;
+    }
   }
 }

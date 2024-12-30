@@ -20,7 +20,6 @@ class SendFormDutyScreen extends StatefulWidget {
 }
 
 class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
-  // [Existing code remains unchanged]
   // Sorting
   String _sortColumn = "date";
   bool _ascending = true;
@@ -157,7 +156,7 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
         title: const Text("Send Form Duty Screen"),
         backgroundColor: Colors.teal,
       ),
-      drawer: _buildHamburgerDrawer(context),
+      // Removed the drawer property to eliminate the hamburger button
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -188,7 +187,7 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
-                          child: _buildTableSection(
+                          child: _buildCardSection(
                             visibleDuties,
                             filteredList.length,
                             startIndex,
@@ -204,7 +203,7 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
                   return SingleChildScrollView(
                     child: Column(
                       children: [
-                        // Sidebar top (can be collapsed or hidden on mobile)
+                        // Sidebar top remains for mobile users
                         Container(
                           width: double.infinity,
                           color: const Color(0xFFf8f9fa),
@@ -213,7 +212,7 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
                         ),
                         Padding(
                           padding: const EdgeInsets.all(16.0),
-                          child: _buildTableSection(
+                          child: _buildCardSection(
                             visibleDuties,
                             filteredList.length,
                             startIndex,
@@ -231,48 +230,6 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
         ],
       ),
       bottomNavigationBar: const CustomBottomAppBar(),
-    );
-  }
-
-  Widget _buildHamburgerDrawer(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Colors.teal),
-            child: const Text(
-              "Send Duty Menu",
-              style: TextStyle(color: Colors.white, fontSize: 20),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.arrow_back),
-            title: const Text("Back"),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text("Home"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/main');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.list_alt_outlined),
-            title: const Text("Request Duty Status"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/duty-spt');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.beach_access),
-            title: const Text("Paid Leave (Cuti)"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/paid-leave');
-            },
-          ),
-        ],
-      ),
     );
   }
 
@@ -372,7 +329,7 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
     );
   }
 
-  Widget _buildTableSection(
+  Widget _buildCardSection(
     List<Map<String, dynamic>> visibleDuties,
     int totalCount,
     int startIndex,
@@ -391,42 +348,193 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
         ),
         const SizedBox(height: 20),
 
-        // Filter Controls (for Desktop)
-        if (MediaQuery.of(context).size.width > 600)
-          _buildFilterControlsDesktop(),
-
-        // Search and Records Per Page
-        if (MediaQuery.of(context).size.width > 600)
-          const SizedBox(height: 10),
-
-        // Table
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Container(
-            constraints: const BoxConstraints(
-              minWidth: 800, // Minimum width to accommodate all columns
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        // Filter and Sort Controls
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Status Filter
+            Row(
               children: [
-                // Headers
-                Row(
-                  children: [
-                    _buildSortableHeader("Keterangan", "description", 300),
-                    _buildSortableHeader("Tanggal Tugas", "date", 150),
-                    _buildSortableHeader("Status", "status", 120),
-                  ],
+                const Text(
+                  "Status:",
+                  style: TextStyle(fontSize: 16),
                 ),
-                const Divider(),
-                // Rows
-                Column(
-                  children:
-                      visibleDuties.map((duty) => _buildTableRow(duty)).toList(),
+                const SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: _selectedStatus,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedStatus = value!;
+                      _currentPage = 1;
+                    });
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                      value: "All",
+                      child: Text("All"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Draft",
+                      child: Text("Draft"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Waiting",
+                      child: Text("Waiting"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Approved",
+                      child: Text("Approved"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Rejected",
+                      child: Text("Rejected"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Returned",
+                      child: Text("Returned"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Need Approve",
+                      child: Text("Need Approve"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Return",
+                      child: Text("Return"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Approve",
+                      child: Text("Approve"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Reject",
+                      child: Text("Reject"),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
+
+            // Sort Controls
+            Row(
+              children: [
+                const Text(
+                  "Sort by:",
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: _sortColumn,
+                  onChanged: (value) {
+                    if (value != null) {
+                      _sortDuties(value);
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                      value: "date",
+                      child: Text("Date"),
+                    ),
+                    DropdownMenuItem(
+                      value: "description",
+                      child: Text("Description"),
+                    ),
+                    DropdownMenuItem(
+                      value: "status",
+                      child: Text("Status"),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: Icon(
+                    _ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _ascending = !_ascending;
+                      _sortDuties(_sortColumn);
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
+
+        const SizedBox(height: 10),
+
+        // Search and Records Per Page
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Records Per Page
+            DropdownButton<String>(
+              value: _recordsPerPage.toString(),
+              onChanged: (value) {
+                setState(() {
+                  _recordsPerPage = int.parse(value!);
+                  _currentPage = 1; // reset
+                });
+              },
+              items: const [
+                DropdownMenuItem(
+                  value: "10",
+                  child: Text("10 records per page"),
+                ),
+                DropdownMenuItem(
+                  value: "25",
+                  child: Text("25 records per page"),
+                ),
+                DropdownMenuItem(
+                  value: "50",
+                  child: Text("50 records per page"),
+                ),
+                DropdownMenuItem(
+                  value: "100",
+                  child: Text("100 records per page"),
+                ),
+              ],
+            ),
+            // Search Field
+            SizedBox(
+              width: 200,
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                    _currentPage = 1;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: "Search",
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // Duty Cards
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: visibleDuties.length,
+          itemBuilder: (context, index) {
+            final duty = visibleDuties[index];
+            return _buildDutyCard(
+              description: duty["description"],
+              date: duty["date"],
+              status: duty["status"],
+              startTime: duty["startTime"],
+              endTime: duty["endTime"],
+            );
+          },
+        ),
+
         const SizedBox(height: 10),
 
         // Pagination
@@ -473,257 +581,105 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
     );
   }
 
-  Widget _buildFilterControlsDesktop() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Status Filter
-        Row(
-          children: [
-            const Text(
-              "Status:",
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(width: 10),
-            DropdownButton<String>(
-              value: _selectedStatus,
-              onChanged: (value) {
-                setState(() {
-                  _selectedStatus = value!;
-                  _currentPage = 1;
-                });
-              },
-              items: const [
-                DropdownMenuItem(
-                  value: "All",
-                  child: Text("All"),
-                ),
-                DropdownMenuItem(
-                  value: "Draft",
-                  child: Text("Draft"),
-                ),
-                DropdownMenuItem(
-                  value: "Waiting",
-                  child: Text("Waiting"),
-                ),
-                DropdownMenuItem(
-                  value: "Returned",
-                  child: Text("Returned"),
-                ),
-                DropdownMenuItem(
-                  value: "Approved",
-                  child: Text("Approved"),
-                ),
-                DropdownMenuItem(
-                  value: "Rejected",
-                  child: Text("Rejected"),
-                ),
-                DropdownMenuItem(
-                  value: "Need Approve",
-                  child: Text("Need Approve"),
-                ),
-                DropdownMenuItem(
-                  value: "Return",
-                  child: Text("Return"),
-                ),
-                DropdownMenuItem(
-                  value: "Approve",
-                  child: Text("Approve"),
-                ),
-                DropdownMenuItem(
-                  value: "Reject",
-                  child: Text("Reject"),
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // Date Range Filter
-        Row(
-          children: [
-            // Start Date
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  _filterStartDate == null
-                      ? "Start Date"
-                      : DateFormat('dd-MM-yyyy').format(_filterStartDate!),
-                  style: const TextStyle(fontSize: 16),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () {
-                    _selectDate(context, true);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(width: 10),
-            // End Date
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  _filterEndDate == null
-                      ? "End Date"
-                      : DateFormat('dd-MM-yyyy').format(_filterEndDate!),
-                  style: const TextStyle(fontSize: 16),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: () {
-                    _selectDate(context, false);
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        // Clear Filters Button
-        ElevatedButton(
-          onPressed: _clearFilters,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.redAccent,
-            padding: const EdgeInsets.symmetric(
-              vertical: 8,
-              horizontal: 12,
-            ),
-          ),
-          child: const Text(
-            "Clear Filters",
-            style: TextStyle(fontSize: 14),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSortableHeader(String title, String columnKey, double width) {
-    return InkWell(
-      onTap: () {
-        _sortDuties(columnKey);
-      },
-      child: SizedBox(
-        width: width,
-        child: Row(
-          children: [
-            Text(
-              title,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              _sortColumn == columnKey
-                  ? (_ascending ? Icons.arrow_upward : Icons.arrow_downward)
-                  : Icons.unfold_more,
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTableRow(Map<String, dynamic> duty) {
-    final description = duty["description"] ?? "";
-    final date = duty["date"] ?? "";
-    final status = duty["status"] ?? "";
-    final startTime = duty["startTime"] ?? "";
-    final endTime = duty["endTime"] ?? "";
-
-    // Determine color based on status
+  /// Card-like duty item for both desktop and mobile screens
+  Widget _buildDutyCard({
+    required String description,
+    required String date,
+    required String status,
+    required String startTime,
+    required String endTime,
+  }) {
+    // Choose color based on status
     Color statusColor = Colors.grey;
-    switch (status.toString().toLowerCase()) {
-      case "approved":
-        statusColor = Colors.green;
-        break;
-      case "waiting":
-        statusColor = Colors.orange;
-        break;
-      case "rejected":
-        statusColor = Colors.red;
-        break;
-      case "draft":
-        statusColor = Colors.blueGrey;
-        break;
-      default:
-        statusColor = Colors.grey;
+    if (status.toString().toLowerCase() == "approved") {
+      statusColor = Colors.green;
+    } else if (status.toString().toLowerCase() == "waiting") {
+      statusColor = Colors.orange;
+    } else if (status.toString().toLowerCase() == "rejected") {
+      statusColor = Colors.red;
+    } else if (status.toString().toLowerCase() == "draft") {
+      statusColor = Colors.blueGrey;
     }
 
-    return InkWell(
-      onTap: () {
-        // On tap, navigate to DutyDetailScreen
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DutyDetailScreen(
-              duty: duty,
-              allDuties: widget.duties,
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
+      elevation: 2,
+      child: InkWell(
+        onTap: () {
+          final dutyData = {
+            "description": description,
+            "date": date,
+            "status": status,
+            "startTime": startTime,
+            "endTime": endTime,
+          };
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DutyDetailScreen(
+                duty: dutyData,
+                allDuties: widget.duties,
+              ),
             ),
-          ),
-        ).then((_) {
-          setState(() {});
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          children: [
-            // Keterangan with Jam Mulai and Jam Selesai
-            SizedBox(
-              width: 300, // Increased width to accommodate time range
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ).then((_) {
+            setState(() {});
+          });
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Description
+              Text(
+                description,
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              // Time Range
+              Text(
+                "${_formatTime(startTime)} - ${_formatTime(endTime)}",
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              // Date and Status
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    description,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500),
+                  // Date
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today,
+                          size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatDate(date),
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    "${_formatTime(startTime)} - ${_formatTime(endTime)}",
-                    style:
-                        const TextStyle(fontSize: 12, color: Colors.grey),
+                  // Status
+                  Container(
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    child: Text(
+                      status,
+                      style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
+                    ),
                   ),
                 ],
               ),
-            ),
-            // Tanggal Tugas
-            SizedBox(
-              width: 150,
-              child: Text(
-                _formatDate(date),
-                style: const TextStyle(fontSize: 14),
-              ),
-            ),
-            // Status
-            SizedBox(
-              width: 120,
-              child: Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -739,7 +695,7 @@ class _SendFormDutyScreenState extends State<SendFormDutyScreen> {
     }
   }
 
-  /// Helper method to format date from "YYYY-MM-DD" to a more readable format
+  /// Helper method to format date from "YYYY-MM-DD" to "dd-MM-yyyy"
   String _formatDate(String date) {
     try {
       DateTime parsedDate = DateTime.parse(date);
