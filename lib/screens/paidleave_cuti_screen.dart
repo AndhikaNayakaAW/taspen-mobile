@@ -353,15 +353,6 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Banner
-          Container(
-            width: double.infinity,
-            color: Colors.green[100],
-            padding: const EdgeInsets.all(8),
-            child: const Text(
-              "Successfully Executed",
-              style: TextStyle(color: Colors.black87),
-            ),
-          ),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
