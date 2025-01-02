@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
 import 'duty_spt_screen.dart';
-import 'create_duty_form.dart'; // We'll use this for "edit" button if Draft
+import 'create_duty_form.dart'; // We'll use this for "edit" button if Draft or Returned
 import 'main_screen.dart';
 import 'paidleave_cuti_screen.dart';
 import 'package:intl/intl.dart'; // Import intl for date formatting
@@ -25,6 +25,15 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
   // Updated to dynamically set the created and modified times
   late String _createdAt;
   late String _modifiedAt;
+  late String _status;
+  late String _rejectionReason;
+
+  // Flags to determine the status
+  bool isDraft = false;
+  bool isWaiting = false;
+  bool isApproved = false;
+  bool isReturned = false;
+  bool isRejected = false;
 
   @override
   void initState() {
@@ -38,6 +47,17 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
         ? DateFormat('MMM dd yyyy hh:mm a')
             .format(DateTime.parse(widget.duty["modifiedAt"]))
         : _createdAt;
+
+    _status = widget.duty["status"]?.toString().toLowerCase() ?? "draft";
+
+    // Determine the status flags
+    isDraft = _status == "draft";
+    isWaiting = _status == "waiting";
+    isApproved = _status == "approved";
+    isReturned = _status == "returned";
+    isRejected = _status == "rejected";
+
+    _rejectionReason = widget.duty["rejectionReason"] ?? "";
   }
 
   // ========== ACTION HANDLERS ==========
@@ -67,6 +87,13 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
               ? DateFormat('MMM dd yyyy hh:mm a')
                   .format(DateTime.parse(widget.duty["modifiedAt"]))
               : _createdAt;
+          _status = widget.duty["status"]?.toString().toLowerCase() ?? "draft";
+          isDraft = _status == "draft";
+          isWaiting = _status == "waiting";
+          isApproved = _status == "approved";
+          isReturned = _status == "returned";
+          isRejected = _status == "rejected";
+          _rejectionReason = widget.duty["rejectionReason"] ?? "";
         });
       }
     });
@@ -78,6 +105,17 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
       widget.duty["status"] = "Waiting";
       widget.duty["modifiedAt"] = DateTime.now().toIso8601String();
       _modifiedAt = DateFormat('MMM dd yyyy hh:mm a').format(DateTime.now());
+
+      // Reset status flags
+      isDraft = false;
+      isWaiting = true;
+      isApproved = false;
+      isReturned = false;
+      isRejected = false;
+
+      // Clear rejection reason if any
+      _rejectionReason = "";
+      widget.duty["rejectionReason"] = "";
     });
 
     // Show confirmation SnackBar
@@ -132,6 +170,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Print Duty (status = $status) - dummy!")),
     );
+    // Implement actual print functionality here if needed
   }
 
   @override
@@ -182,6 +221,16 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                                         DateTime.parse(
                                             widget.duty["modifiedAt"]))
                                     : _createdAt;
+                                _status =
+                                    widget.duty["status"]?.toString().toLowerCase() ??
+                                        "draft";
+                                isDraft = _status == "draft";
+                                isWaiting = _status == "waiting";
+                                isApproved = _status == "approved";
+                                isReturned = _status == "returned";
+                                isRejected = _status == "rejected";
+                                _rejectionReason =
+                                    widget.duty["rejectionReason"] ?? "";
                               });
                             }
                           });
@@ -198,7 +247,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => MainScreen(),
+                              builder: (_) => const MainScreen(),
                             ),
                             (Route<dynamic> route) => false,
                           );
@@ -234,7 +283,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
           } else {
             // Mobile
             return SingleChildScrollView(
-              child: _buildDetailContent(),
+              child: _buildDetailContent(isMobile: true),
             );
           }
         },
@@ -243,7 +292,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     );
   }
 
-  Widget _buildDetailContent() {
+  Widget _buildDetailContent({bool isMobile = false}) {
     final duty = widget.duty;
     final description = duty["description"] ?? "No Title";
     final status = duty["status"] ?? "Draft";
@@ -259,9 +308,9 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     final displayedDate =
         dateStr.isEmpty ? "20 December 2024" : _formatDate(dateStr);
     final displayedStart =
-        startTimeStr.isEmpty ? "09:31:32" : _formatTime(startTimeStr);
+        startTimeStr.isEmpty ? "09:31 AM" : _formatTime(startTimeStr);
     final displayedEnd =
-        endTimeStr.isEmpty ? "16:30:00" : _formatTime(endTimeStr);
+        endTimeStr.isEmpty ? "04:30 PM" : _formatTime(endTimeStr);
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -279,31 +328,66 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          "Created: $_createdAt",
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        Text(
-                          "Modified: $_modifiedAt",
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
+                // Title and Timestamps
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth > 300) {
+                      // Desktop-like horizontal layout
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Description
+                          Expanded(
+                            child: Text(
+                              description,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          // Created and Modified
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                "Created: $_createdAt",
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              Text(
+                                "Modified: $_modifiedAt",
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    } else {
+                      // Mobile-like vertical layout
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            description,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Created: $_createdAt",
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          Text(
+                            "Modified: $_modifiedAt",
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
                 const SizedBox(height: 8),
                 Text("Date: $displayedDate"),
@@ -346,6 +430,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
 
                 const SizedBox(height: 20),
                 _buildActionButtons(status),
+                // Display Rejection Reason if status is Rejected
+                if (isRejected) _buildRejectionReason(),
               ],
             ),
           ),
@@ -375,8 +461,15 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
 
   /// Build the bottom row of Action Buttons
   Widget _buildActionButtons(String status) {
+    // Define colors based on status
+    Color statusColor = Colors.grey;
+    if (status.toLowerCase() == "approved") statusColor = Colors.green;
+    else if (status.toLowerCase() == "waiting") statusColor = Colors.orange;
+    else if (status.toLowerCase() == "returned") statusColor = Colors.blue;
+    else if (status.toLowerCase() == "rejected") statusColor = Colors.red;
+
     // If it's a DRAFT -> We can Edit, Send, or Delete
-    if (status.toLowerCase() == "draft") {
+    if (isDraft) {
       return Row(
         children: [
           ElevatedButton.icon(
@@ -400,24 +493,108 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
         ],
       );
     }
+    // If it's RETURNED -> We can Edit and Send, but not Delete
+    else if (isReturned) {
+      return Row(
+        children: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.edit),
+            label: const Text("Edit"),
+            onPressed: _onEdit,
+          ),
+          const SizedBox(width: 10),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.send),
+            label: const Text("Send"),
+            onPressed: _onSend,
+          ),
+        ],
+      );
+    }
     // If it's WAITING or APPROVED -> we can only Print
-    else if (status.toLowerCase() == "waiting" ||
-        status.toLowerCase() == "approved") {
+    else if (isWaiting || isApproved) {
       return ElevatedButton.icon(
         icon: const Icon(Icons.print),
-        label: Text("Print ($status)"),
+        label: Text("Print (${capitalize(status)})"),
         onPressed: _onPrint,
       );
     }
-    // If it's any other status (like REJECTED, RETURNED, etc.)
+    // If it's REJECTED -> we can only Print and view Rejection Reason
+    else if (isRejected) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.print),
+            label: Text("Print (${capitalize(status)})"),
+            onPressed: _onPrint,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "Rejection Reason:",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.red.shade700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _rejectionReason.isNotEmpty
+                ? _rejectionReason
+                : "No reason provided.",
+            style: const TextStyle(
+              color: Colors.red,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      );
+    }
+    // Default case
     else {
       return ElevatedButton.icon(
         icon: const Icon(Icons.print),
-        label: Text("Print ($status)"),
+        label: Text("Print (${capitalize(status)})"),
         onPressed: _onPrint,
       );
     }
   }
+
+  /// Build the Rejection Reason section
+  Widget _buildRejectionReason() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Rejection Reason:",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.red.shade700,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _rejectionReason.isNotEmpty
+                ? _rejectionReason
+                : "No reason provided.",
+            style: const TextStyle(
+              color: Colors.red,
+              fontStyle: FontStyle.italic,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Capitalize the first letter of the status
+  String capitalize(String s) => s.isNotEmpty
+      ? s[0].toUpperCase() + s.substring(1).toLowerCase()
+      : s;
 
   /// Helper method to format time from "HH:mm:ss" to "hh:mm a"
   String _formatTime(String time) {

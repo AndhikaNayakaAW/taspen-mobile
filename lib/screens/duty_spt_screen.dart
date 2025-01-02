@@ -15,7 +15,7 @@ class DutySPTScreen extends StatefulWidget {
 }
 
 class _DutySPTScreenState extends State<DutySPTScreen> {
-  // Dummy Data (15 items) with unique IDs
+  // Dummy Data (22 items) with unique IDs
   List<Map<String, dynamic>> duties = [
     {
       "id": 1,
@@ -137,6 +137,69 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "startTime": "08:45:00",
       "endTime": "14:15:00"
     },
+    {
+      "id": 16,
+      "description": "Quality Assurance Review",
+      "date": "2024-06-20",
+      "status": "Returned",
+      "startTime": "10:00:00",
+      "endTime": "14:00:00",
+      "rejectionReason": "",
+    },
+    {
+      "id": 17,
+      "description": "System Integration Testing",
+      "date": "2024-06-25",
+      "status": "Returned",
+      "startTime": "09:30:00",
+      "endTime": "13:30:00",
+      "rejectionReason": "",
+    },
+    {
+      "id": 18,
+      "description": "Security Audit",
+      "date": "2024-07-05",
+      "status": "Rejected",
+      "startTime": "08:00:00",
+      "endTime": "12:00:00",
+      "rejectionReason": "Incomplete documentation provided.",
+    },
+    {
+      "id": 19,
+      "description": "Network Infrastructure Upgrade",
+      "date": "2024-07-10",
+      "status": "Rejected",
+      "startTime": "11:00:00",
+      "endTime": "15:00:00",
+      "rejectionReason": "Budget constraints.",
+    },
+    {
+      "id": 20,
+      "description": "Preliminary Design Meeting",
+      "date": "2024-08-05",
+      "status": "Draft",
+      "startTime": "09:00:00",
+      "endTime": "11:00:00",
+      "rejectionReason": "",
+    },
+    {
+      "id": 21,
+      "description": "Initial Requirement Gathering",
+      "date": "2024-08-12",
+      "status": "Draft",
+      "startTime": "10:00:00",
+      "endTime": "12:00:00",
+      "rejectionReason": "",
+    },
+    {
+      "id": 22,
+      "description": "Stakeholder Alignment",
+      "date": "2024-08-18",
+      "status": "Draft",
+      "startTime": "14:00:00",
+      "endTime": "16:00:00",
+      "rejectionReason": "",
+    },
   ];
 
   List<Map<String, dynamic>> filteredDuties = [];
@@ -168,7 +231,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
         bool matchesStatus = selectedStatus == "All"
             ? true
-            : duty["status"].toString().toLowerCase() == selectedStatus.toLowerCase();
+            : duty["status"].toString().toLowerCase() ==
+                selectedStatus.toLowerCase();
 
         bool matchesStartDate = filterStartDate == null
             ? true
@@ -472,7 +536,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                     Text(
                                       filterStartDate == null
                                           ? "Start Date"
-                                          : DateFormat('dd-MM-yyyy').format(filterStartDate!),
+                                          : DateFormat('dd-MM-yyyy')
+                                              .format(filterStartDate!),
                                       style: const TextStyle(fontSize: 16),
                                     ),
                                     IconButton(
@@ -492,7 +557,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                     Text(
                                       filterEndDate == null
                                           ? "End Date"
-                                          : DateFormat('dd-MM-yyyy').format(filterEndDate!),
+                                          : DateFormat('dd-MM-yyyy')
+                                              .format(filterEndDate!),
                                       style: const TextStyle(fontSize: 16),
                                     ),
                                     IconButton(
@@ -616,6 +682,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                         status: duty["status"],
                                         startTime: duty["startTime"],
                                         endTime: duty["endTime"],
+                                        rejectionReason: duty["rejectionReason"] ?? "",
                                       );
                                     },
                                   ),
@@ -849,6 +916,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           status: duty["status"],
                           startTime: duty["startTime"],
                           endTime: duty["endTime"],
+                          rejectionReason: duty["rejectionReason"] ?? "",
                         );
                       }).toList(),
                     ),
@@ -1078,11 +1146,14 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     required String status,
     required String startTime,
     required String endTime,
+    String rejectionReason = "",
   }) {
     // Choose color
     Color statusColor = Colors.grey;
     if (status == "Approved") statusColor = Colors.green;
     else if (status == "Waiting") statusColor = Colors.orange;
+    else if (status == "Returned") statusColor = Colors.blue;
+    else if (status == "Rejected") statusColor = Colors.red;
 
     // Find the duty with the given details to get its unique ID
     Map<String, dynamic>? duty = duties.firstWhere(
@@ -1184,8 +1255,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold),
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: 4),
             Icon(
@@ -1227,11 +1298,14 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     required String status,
     required String startTime,
     required String endTime,
+    String rejectionReason = "",
   }) {
     // Choose color
     Color statusColor = Colors.grey;
     if (status == "Approved") statusColor = Colors.green;
     else if (status == "Waiting") statusColor = Colors.orange;
+    else if (status == "Returned") statusColor = Colors.blue;
+    else if (status == "Rejected") statusColor = Colors.red;
 
     // Find the duty with the given details to get its unique ID
     Map<String, dynamic>? duty = duties.firstWhere(
@@ -1314,6 +1388,18 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   ),
                 ],
               ),
+              // Rejection Reason for Rejected Status
+              if (status == "Rejected")
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    "Reason: ${duty["rejectionReason"]}",
+                    style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.red,
+                        fontStyle: FontStyle.italic),
+                  ),
+                ),
             ],
           ),
         ),

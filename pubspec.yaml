@@ -14,6 +14,8 @@ dependencies:
   # Add the http package:
   http: ^0.13.5
   file_picker: ^5.0.1
+  google_fonts: ^4.0.3
+  firebase_auth: ^4.4.0
 
   cupertino_icons: ^1.0.8
 

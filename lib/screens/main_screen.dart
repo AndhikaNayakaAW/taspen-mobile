@@ -3,6 +3,7 @@ import 'dart:async'; // Import for Timer
 import 'package:flutter/material.dart';
 import '../widgets/custom_bottom_app_bar.dart'; // Ensure this is imported
 import 'package:intl/intl.dart'; // Import intl for date formatting
+import 'login_screen.dart'; // Import LoginScreen
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -98,6 +99,7 @@ class _MainScreenState extends State<MainScreen> {
         elevation: 8,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         color: Colors.white,
+        shadowColor: Colors.teal.withOpacity(0.3),
         child: Container(
           width: isLargeScreen ? 500 : double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
@@ -176,7 +178,7 @@ class _MainScreenState extends State<MainScreen> {
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         ),
         onPressed: () {
-          // Implement your logout functionality here
+          // Show logout confirmation dialog
           _showLogoutConfirmation(context);
         },
       ),
@@ -216,8 +218,11 @@ class _MainScreenState extends State<MainScreen> {
               ),
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
-                // Implement your logout logic here
-                // For example, navigate to the login screen
+                // Navigate to LoginScreen and remove all previous routes
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  (Route<dynamic> route) => false,
+                );
               },
             ),
           ],
@@ -237,7 +242,10 @@ class _MainScreenState extends State<MainScreen> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: RadialGradient(
-            colors: [Colors.teal[200]!.withOpacity(0.5), Colors.teal[100]!.withOpacity(0.0)],
+            colors: [
+              Colors.teal[200]!.withOpacity(0.5),
+              Colors.teal[100]!.withOpacity(0.0)
+            ],
             stops: const [0.0, 1.0],
           ),
         ),
@@ -256,7 +264,10 @@ class _MainScreenState extends State<MainScreen> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: RadialGradient(
-            colors: [Colors.teal[200]!.withOpacity(0.5), Colors.teal[100]!.withOpacity(0.0)],
+            colors: [
+              Colors.teal[200]!.withOpacity(0.5),
+              Colors.teal[100]!.withOpacity(0.0)
+            ],
             stops: const [0.0, 1.0],
           ),
         ),

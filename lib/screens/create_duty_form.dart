@@ -55,6 +55,12 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   // Transport
   String? _selectedTransport;
 
+  // Rejection Reason (only applicable if editing a Rejected duty)
+  String? _rejectionReason;
+
+  // Flag to determine if the duty is rejected
+  bool isRejected = false;
+
   // Consistent TextStyle
   final TextStyle _labelStyle = const TextStyle(
     fontSize: 16,
@@ -116,6 +122,8 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
         _endTime =
             duty["endTime"] != "" ? _parseTime(duty["endTime"]) : null;
         _selectedTransport = duty["transport"] ?? null;
+        isRejected = duty["status"].toString().toLowerCase() == "rejected";
+        _rejectionReason = duty["rejectionReason"] ?? "";
       } else {
         // Reset to default
         _namesAndDescriptions = [
@@ -126,6 +134,8 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
         _startTime = null;
         _endTime = null;
         _selectedTransport = null;
+        isRejected = false;
+        _rejectionReason = null;
       }
     });
   }
@@ -163,6 +173,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                     .reduce((a, b) => a > b ? a : b) +
                     1
                 : 1),
+        "rejectionReason": widget.dutyToEdit?["rejectionReason"] ?? "",
       };
 
       if (widget.dutyToEdit != null) {
@@ -219,6 +230,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                     .reduce((a, b) => a > b ? a : b) +
                     1
                 : 1),
+        "rejectionReason": widget.dutyToEdit?["rejectionReason"] ?? "",
       };
 
       if (widget.dutyToEdit != null) {
@@ -301,6 +313,16 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
 
   // ========== UI BUILD WITH BOTTOM APP BAR ==========
   @override
+  void initState() {
+    super.initState();
+    if (widget.dutyToEdit != null) {
+      final duty = widget.dutyToEdit!;
+      isRejected = duty["status"].toString().toLowerCase() == "rejected";
+      _rejectionReason = duty["rejectionReason"] ?? "";
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     bool isEditing = widget.dutyToEdit != null;
 
@@ -330,7 +352,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
               child: IconButton(
                 icon:
                     const Icon(Icons.add_circle, color: Colors.teal, size: 30),
-                onPressed: _addNameField,
+                onPressed: isRejected ? null : _addNameField,
                 tooltip: "Add Employee",
               ),
             ),
@@ -354,11 +376,13 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                   child: Text("${item["name"]}"),
                 );
               }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedApproverId = value;
-                });
-              },
+              onChanged: isRejected
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _selectedApproverId = value;
+                      });
+                    },
               decoration: const InputDecoration(
                 labelText: "Select Approver",
                 border: OutlineInputBorder(),
@@ -377,7 +401,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
             ),
             const SizedBox(height: 8),
             InkWell(
-              onTap: _pickDate,
+              onTap: isRejected ? null : _pickDate,
               child: Container(
                 width: double.infinity,
                 padding:
@@ -410,7 +434,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                       ),
                       const SizedBox(height: 8),
                       InkWell(
-                        onTap: () => _pickTime(isStart: true),
+                        onTap: isRejected ? null : () => _pickTime(isStart: true),
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
@@ -442,7 +466,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                       ),
                       const SizedBox(height: 8),
                       InkWell(
-                        onTap: () => _pickTime(isStart: false),
+                        onTap: isRejected ? null : () => _pickTime(isStart: false),
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
@@ -488,11 +512,13 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                   child: Text("Official Car/Motorcycle"),
                 ),
               ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedTransport = value;
-                });
-              },
+              onChanged: isRejected
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _selectedTransport = value;
+                      });
+                    },
               decoration: const InputDecoration(
                 labelText: "Select Transport",
                 border: OutlineInputBorder(),
@@ -501,13 +527,41 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
             ),
             const SizedBox(height: 30),
 
+            // =========== REJECTION REASON SECTION (ONLY FOR EDITING REJECTED DUTIES) ===========
+            if (isRejected)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Rejection Reason:",
+                    style: _labelStyle,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.red),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      _rejectionReason ?? "No reason provided.",
+                      style: const TextStyle(
+                          fontSize: 16, color: Colors.red, fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+
             // =========== BUTTONS ===========
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Reset Button
                 ElevatedButton(
-                  onPressed: _resetForm,
+                  onPressed: isRejected ? null : _resetForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     padding:
@@ -520,29 +574,31 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                 ),
                 const SizedBox(width: 20),
                 // Save Button
-                ElevatedButton(
-                  onPressed: _saveForm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                if (!isRejected)
+                  ElevatedButton(
+                    onPressed: _saveForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                    ),
+                    child: Text(isEditing ? "Update" : "Save"),
                   ),
-                  child: Text(isEditing ? "Update" : "Save"),
-                ),
-                const SizedBox(width: 20),
+                if (!isRejected) const SizedBox(width: 20),
                 // Send to Approver Button
-                ElevatedButton(
-                  onPressed: _sendToApprover,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                if (!isRejected)
+                  ElevatedButton(
+                    onPressed: _sendToApprover,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                    ),
+                    child: const Text(
+                      "Send to Approver",
+                      style: TextStyle(fontSize: 16),
+                    ),
                   ),
-                  child: const Text(
-                    "Send to Approver",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
               ],
             ),
           ],
@@ -591,18 +647,20 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                         child: Text("${item["name"]}"),
                       );
                     }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        final found = _employeeList.firstWhere(
-                          (element) => element["id"] == value,
-                          orElse: () => {"id": "", "name": ""},
-                        );
-                        _namesAndDescriptions[index]["employeeId"] =
-                            found["id"] ?? "";
-                        _namesAndDescriptions[index]["employeeName"] =
-                            found["name"] ?? "";
-                      });
-                    },
+                    onChanged: isRejected
+                        ? null
+                        : (value) {
+                            setState(() {
+                              final found = _employeeList.firstWhere(
+                                (element) => element["id"] == value,
+                                orElse: () => {"id": "", "name": ""},
+                              );
+                              _namesAndDescriptions[index]["employeeId"] =
+                                  found["id"] ?? "";
+                              _namesAndDescriptions[index]["employeeName"] =
+                                  found["name"] ?? "";
+                            });
+                          },
                     decoration: const InputDecoration(
                       labelText: "Select Employee",
                       border: OutlineInputBorder(),
@@ -611,7 +669,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                 ),
                 const SizedBox(width: 10),
                 // Remove button if more than 1 row
-                if (_namesAndDescriptions.length > 1)
+                if (_namesAndDescriptions.length > 1 && !isRejected)
                   IconButton(
                     icon:
                         const Icon(Icons.remove_circle, color: Colors.red),
@@ -628,14 +686,17 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
             // Description Field
             TextFormField(
               initialValue: nameDesc["description"],
-              onChanged: (val) {
-                _namesAndDescriptions[index]["description"] = val;
-              },
+              onChanged: isRejected
+                  ? null
+                  : (val) {
+                      _namesAndDescriptions[index]["description"] = val;
+                    },
               decoration: const InputDecoration(
                 labelText: "Description",
                 border: OutlineInputBorder(),
               ),
               maxLines: 2,
+              enabled: !isRejected,
             ),
           ],
         ),
