@@ -15,9 +15,10 @@ class DutySPTScreen extends StatefulWidget {
 }
 
 class _DutySPTScreenState extends State<DutySPTScreen> {
-  // Dummy Data (15 items)
+  // Dummy Data (15 items) with unique IDs
   List<Map<String, dynamic>> duties = [
     {
+      "id": 1,
       "description": "Meeting with HR",
       "date": "2024-12-24",
       "status": "Waiting",
@@ -25,6 +26,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "17:00:00"
     },
     {
+      "id": 2,
       "description": "Project Discussion",
       "date": "2024-12-15",
       "status": "Approved",
@@ -32,6 +34,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "16:00:00"
     },
     {
+      "id": 3,
       "description": "Annual Report Review",
       "date": "2024-11-30",
       "status": "Waiting",
@@ -39,6 +42,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "15:00:00"
     },
     {
+      "id": 4,
       "description": "Client Visit",
       "date": "2024-11-29",
       "status": "Approved",
@@ -46,6 +50,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "18:00:00"
     },
     {
+      "id": 5,
       "description": "Training Session",
       "date": "2024-11-20",
       "status": "Waiting",
@@ -53,6 +58,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "14:00:00"
     },
     {
+      "id": 6,
       "description": "Team Meeting",
       "date": "2024-11-15",
       "status": "Approved",
@@ -60,6 +66,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "16:30:00"
     },
     {
+      "id": 7,
       "description": "System Update Review",
       "date": "2024-11-10",
       "status": "Waiting",
@@ -67,6 +74,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "12:15:00"
     },
     {
+      "id": 8,
       "description": "Policy Discussion",
       "date": "2024-10-25",
       "status": "Approved",
@@ -74,6 +82,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "17:10:00"
     },
     {
+      "id": 9,
       "description": "Department Sync",
       "date": "2024-10-15",
       "status": "Waiting",
@@ -81,6 +90,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "12:30:00"
     },
     {
+      "id": 10,
       "description": "Budget Planning",
       "date": "2024-10-01",
       "status": "Approved",
@@ -88,6 +98,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "17:00:00"
     },
     {
+      "id": 11,
       "description": "IT Maintenance",
       "date": "2024-09-20",
       "status": "Waiting",
@@ -95,6 +106,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "12:00:00"
     },
     {
+      "id": 12,
       "description": "Internal Audit",
       "date": "2024-09-15",
       "status": "Approved",
@@ -102,6 +114,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "15:30:00"
     },
     {
+      "id": 13,
       "description": "Leadership Training",
       "date": "2024-08-25",
       "status": "Waiting",
@@ -109,6 +122,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "16:30:00"
     },
     {
+      "id": 14,
       "description": "Marketing Strategy Meeting",
       "date": "2024-08-10",
       "status": "Approved",
@@ -116,6 +130,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       "endTime": "15:00:00"
     },
     {
+      "id": 15,
       "description": "Financial Report Review",
       "date": "2024-07-15",
       "status": "Waiting",
@@ -153,7 +168,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
         bool matchesStatus = selectedStatus == "All"
             ? true
-            : duty["status"].toString() == selectedStatus;
+            : duty["status"].toString().toLowerCase() == selectedStatus.toLowerCase();
 
         bool matchesStartDate = filterStartDate == null
             ? true
@@ -272,72 +287,94 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   width: 250,
                   color: const Color(0xFFf8f9fa),
                   padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Create Duty Form Button
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 20,
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CreateDutyForm(duties: duties),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Create Duty Form Button
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 20,
                             ),
-                          ).then((_) {
+                          ),
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreateDutyForm(duties: duties),
+                              ),
+                            );
                             setState(() {
                               filterDuties();
                             });
-                          });
-                        },
-                        child: const Text("Create Duty Form"),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        "ALL DUTY",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 10),
-                      _buildStatusItem("All", filteredDuties.length, Colors.teal),
-                      const Divider(),
-                      const Text(
-                        "AS A CONCEPTOR / MAKER",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 10),
-                      _buildStatusItem("Draft", duties.where((duty) => duty["status"] == "Draft").length, Colors.grey),
-                      _buildStatusItem(
-                        "Waiting",
-                        duties.where((duty) => duty["status"] == "Waiting").length,
-                        Colors.orange,
-                      ),
-                      _buildStatusItem("Returned", duties.where((duty) => duty["status"] == "Returned").length, Colors.blue),
-                      _buildStatusItem(
-                        "Approved",
-                        duties.where((duty) => duty["status"] == "Approved").length,
-                        Colors.green,
-                      ),
-                      _buildStatusItem("Rejected", duties.where((duty) => duty["status"] == "Rejected").length, Colors.red),
-                      const Divider(),
-                      const Text(
-                        "AS AN APPROVAL",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 10),
-                      _buildStatusItem("Need Approve", duties.where((duty) => duty["status"] == "Need Approve").length, Colors.orange),
-                      _buildStatusItem("Return", duties.where((duty) => duty["status"] == "Return").length, Colors.blue),
-                      _buildStatusItem("Approve", duties.where((duty) => duty["status"] == "Approve").length, Colors.green),
-                      _buildStatusItem("Reject", duties.where((duty) => duty["status"] == "Reject").length, Colors.red),
-                    ],
+                          },
+                          child: const Text("Create Duty Form"),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          "ALL DUTY",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildStatusItem("All", filteredDuties.length, Colors.teal),
+                        const Divider(),
+                        const Text(
+                          "AS A CONCEPTOR / MAKER",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildStatusItem(
+                            "Draft",
+                            duties.where((duty) => duty["status"] == "Draft").length,
+                            Colors.grey),
+                        _buildStatusItem(
+                          "Waiting",
+                          duties.where((duty) => duty["status"] == "Waiting").length,
+                          Colors.orange,
+                        ),
+                        _buildStatusItem(
+                            "Returned",
+                            duties.where((duty) => duty["status"] == "Returned").length,
+                            Colors.blue),
+                        _buildStatusItem(
+                          "Approved",
+                          duties.where((duty) => duty["status"] == "Approved").length,
+                          Colors.green,
+                        ),
+                        _buildStatusItem(
+                            "Rejected",
+                            duties.where((duty) => duty["status"] == "Rejected").length,
+                            Colors.red),
+                        const Divider(),
+                        const Text(
+                          "AS AN APPROVAL",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildStatusItem(
+                            "Need Approve",
+                            duties.where((duty) => duty["status"] == "Need Approve").length,
+                            Colors.orange),
+                        _buildStatusItem(
+                            "Return",
+                            duties.where((duty) => duty["status"] == "Return").length,
+                            Colors.blue),
+                        _buildStatusItem(
+                            "Approve",
+                            duties.where((duty) => duty["status"] == "Approve").length,
+                            Colors.green),
+                        _buildStatusItem(
+                            "Reject",
+                            duties.where((duty) => duty["status"] == "Reject").length,
+                            Colors.red),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -402,6 +439,22 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                     DropdownMenuItem(
                                       value: "Returned",
                                       child: Text("Returned"),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: "Need Approve",
+                                      child: Text("Need Approve"),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: "Return",
+                                      child: Text("Return"),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: "Approve",
+                                      child: Text("Approve"),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: "Reject",
+                                      child: Text("Reject"),
                                     ),
                                   ],
                                 ),
@@ -532,7 +585,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                             scrollDirection: Axis.horizontal,
                             child: Container(
                               // Make the table width responsive
-                              constraints: BoxConstraints(
+                              constraints: const BoxConstraints(
                                 minWidth: 600, // Minimum width to prevent collapsing
                               ),
                               child: Column(
@@ -541,8 +594,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                   // Headers
                                   Row(
                                     children: [
-                                      _buildSortableColumn(
-                                          "Keterangan", "description"),
+                                      _buildSortableColumn("Keterangan", "description"),
                                       _buildSortableColumn("Tanggal Tugas", "date"),
                                       _buildSortableColumn("Status", "status"),
                                       // Removed "Jam Mulai" and "Jam Selesai" headers
@@ -636,16 +688,15 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           horizontal: 20,
                         ),
                       ),
-                      onPressed: () {
-                        Navigator.push(
+                      onPressed: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => CreateDutyForm(duties: duties),
                           ),
-                        ).then((_) {
-                          setState(() {
-                            filterDuties();
-                          });
+                        );
+                        setState(() {
+                          filterDuties();
                         });
                       },
                       child: const Text("Create Duty Form"),
@@ -663,19 +714,28 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     const SizedBox(height: 10),
-                    _buildStatusItem("Draft", duties.where((duty) => duty["status"] == "Draft").length, Colors.grey),
+                    _buildStatusItem(
+                        "Draft",
+                        duties.where((duty) => duty["status"] == "Draft").length,
+                        Colors.grey),
                     _buildStatusItem(
                       "Waiting",
                       duties.where((duty) => duty["status"] == "Waiting").length,
                       Colors.orange,
                     ),
-                    _buildStatusItem("Returned", duties.where((duty) => duty["status"] == "Returned").length, Colors.blue),
+                    _buildStatusItem(
+                        "Returned",
+                        duties.where((duty) => duty["status"] == "Returned").length,
+                        Colors.blue),
                     _buildStatusItem(
                       "Approved",
                       duties.where((duty) => duty["status"] == "Approved").length,
                       Colors.green,
                     ),
-                    _buildStatusItem("Rejected", duties.where((duty) => duty["status"] == "Rejected").length, Colors.red),
+                    _buildStatusItem(
+                        "Rejected",
+                        duties.where((duty) => duty["status"] == "Rejected").length,
+                        Colors.red),
                     const Divider(),
                     const Text(
                       "AS AN APPROVAL",
@@ -683,10 +743,22 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     const SizedBox(height: 10),
-                    _buildStatusItem("Need Approve", duties.where((duty) => duty["status"] == "Need Approve").length, Colors.orange),
-                    _buildStatusItem("Return", duties.where((duty) => duty["status"] == "Return").length, Colors.blue),
-                    _buildStatusItem("Approve", duties.where((duty) => duty["status"] == "Approve").length, Colors.green),
-                    _buildStatusItem("Reject", duties.where((duty) => duty["status"] == "Reject").length, Colors.red),
+                    _buildStatusItem(
+                        "Need Approve",
+                        duties.where((duty) => duty["status"] == "Need Approve").length,
+                        Colors.orange),
+                    _buildStatusItem(
+                        "Return",
+                        duties.where((duty) => duty["status"] == "Return").length,
+                        Colors.blue),
+                    _buildStatusItem(
+                        "Approve",
+                        duties.where((duty) => duty["status"] == "Approve").length,
+                        Colors.green),
+                    _buildStatusItem(
+                        "Reject",
+                        duties.where((duty) => duty["status"] == "Reject").length,
+                        Colors.red),
                     const SizedBox(height: 20),
 
                     // Title
@@ -889,6 +961,22 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           value: "Returned",
                           child: Text("Returned"),
                         ),
+                        DropdownMenuItem(
+                          value: "Need Approve",
+                          child: Text("Need Approve"),
+                        ),
+                        DropdownMenuItem(
+                          value: "Return",
+                          child: Text("Return"),
+                        ),
+                        DropdownMenuItem(
+                          value: "Approve",
+                          child: Text("Approve"),
+                        ),
+                        DropdownMenuItem(
+                          value: "Reject",
+                          child: Text("Reject"),
+                        ),
                       ],
                     ),
                   ),
@@ -996,20 +1084,27 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     if (status == "Approved") statusColor = Colors.green;
     else if (status == "Waiting") statusColor = Colors.orange;
 
+    // Find the duty with the given details to get its unique ID
+    Map<String, dynamic>? duty = duties.firstWhere(
+        (duty) =>
+            duty["description"] == description &&
+            duty["date"] == date &&
+            duty["status"] == status &&
+            duty["startTime"] == startTime &&
+            duty["endTime"] == endTime,
+        orElse: () => {});
+
+    // If duty not found, do not build the row
+    if (duty.isEmpty) {
+      return Container();
+    }
+
     return InkWell(
       onTap: () {
-        final dutyData = {
-          "description": description,
-          "date": date,
-          "status": status,
-          "startTime": startTime,
-          "endTime": endTime,
-        };
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                DutyDetailScreen(duty: dutyData, allDuties: duties),
+            builder: (_) => DutyDetailScreen(duty: duty, allDuties: duties),
           ),
         ).then((_) {
           setState(() {});
@@ -1138,23 +1233,30 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     if (status == "Approved") statusColor = Colors.green;
     else if (status == "Waiting") statusColor = Colors.orange;
 
+    // Find the duty with the given details to get its unique ID
+    Map<String, dynamic>? duty = duties.firstWhere(
+        (duty) =>
+            duty["description"] == description &&
+            duty["date"] == date &&
+            duty["status"] == status &&
+            duty["startTime"] == startTime &&
+            duty["endTime"] == endTime,
+        orElse: () => {});
+
+    // If duty not found, do not build the card
+    if (duty.isEmpty) {
+      return Container();
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       elevation: 2,
       child: InkWell(
         onTap: () {
-          final dutyData = {
-            "description": description,
-            "date": date,
-            "status": status,
-            "startTime": startTime,
-            "endTime": endTime,
-          };
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) =>
-                  DutyDetailScreen(duty: dutyData, allDuties: duties),
+              builder: (_) => DutyDetailScreen(duty: duty, allDuties: duties),
             ),
           ).then((_) {
             setState(() {});

@@ -1,18 +1,18 @@
 // lib/screens/create_duty_form.dart
 import 'package:flutter/material.dart';
 import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
-import 'saved_form_duty_screen.dart';
-import 'send_form_duty_screen.dart';
 import 'duty_detail_screen.dart'; // Ensure this is used elsewhere if needed
 import 'package:intl/intl.dart'; // Import intl for date formatting
 
 class CreateDutyForm extends StatefulWidget {
   /// We pass the entire duties list so we can add a new draft or waiting item
   final List<Map<String, dynamic>> duties;
+  final Map<String, dynamic>? dutyToEdit; // Optional parameter for editing
 
   const CreateDutyForm({
     Key? key,
     required this.duties,
+    this.dutyToEdit, // Initialize the optional parameter
   }) : super(key: key);
 
   @override
@@ -103,14 +103,30 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   /// Reset the entire form
   void _resetForm() {
     setState(() {
-      _namesAndDescriptions = [
-        {"employeeId": "", "employeeName": "", "description": ""}
-      ];
-      _selectedApproverId = null;
-      _selectedDutyDate = null;
-      _startTime = null;
-      _endTime = null;
-      _selectedTransport = null;
+      if (widget.dutyToEdit != null) {
+        // Reset to existing duty data
+        final duty = widget.dutyToEdit!;
+        _namesAndDescriptions =
+            List<Map<String, String>>.from(duty["namesAndDescriptions"]);
+        _selectedApproverId = duty["approverId"];
+        _selectedDutyDate =
+            duty["dutyDate"] != "" ? DateTime.parse(duty["dutyDate"]) : null;
+        _startTime =
+            duty["startTime"] != "" ? _parseTime(duty["startTime"]) : null;
+        _endTime =
+            duty["endTime"] != "" ? _parseTime(duty["endTime"]) : null;
+        _selectedTransport = duty["transport"] ?? null;
+      } else {
+        // Reset to default
+        _namesAndDescriptions = [
+          {"employeeId": "", "employeeName": "", "description": ""}
+        ];
+        _selectedApproverId = null;
+        _selectedDutyDate = null;
+        _startTime = null;
+        _endTime = null;
+        _selectedTransport = null;
+      }
     });
   }
 
@@ -118,7 +134,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   void _saveForm() {
     // Validate form before saving
     if (_validateForm()) {
-      final dutyData = {
+      Map<String, dynamic> dutyData = {
         // For demonstration, let's store "createdBy" as "andhika.nayaka"
         "createdBy": "andhika.nayaka",
         "namesAndDescriptions": _namesAndDescriptions,
@@ -137,20 +153,38 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
             ? ""
             : "${_selectedDutyDate!.year}-${_selectedDutyDate!.month.toString().padLeft(2, '0')}-${_selectedDutyDate!.day.toString().padLeft(2, '0')}",
         "status": "Draft",
+        "createdAt":
+            widget.dutyToEdit?["createdAt"] ?? DateTime.now().toIso8601String(),
+        "modifiedAt": DateTime.now().toIso8601String(),
+        "id": widget.dutyToEdit?["id"] ??
+            (widget.duties.isNotEmpty
+                ? widget.duties
+                    .map((d) => d["id"] as int)
+                    .reduce((a, b) => a > b ? a : b) +
+                    1
+                : 1),
       };
 
-      widget.duties.add(dutyData);
+      if (widget.dutyToEdit != null) {
+        // Editing mode: Update existing duty based on 'id'
+        int index =
+            widget.duties.indexWhere((d) => d["id"] == widget.dutyToEdit!["id"]);
+        if (index != -1) {
+          widget.duties[index] = dutyData;
+        }
+      } else {
+        // Creating mode: Add new duty
+        widget.duties.add(dutyData);
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Duty Form Saved! (Draft)")),
+        SnackBar(
+            content: Text(widget.dutyToEdit != null
+                ? "Duty Updated! (Draft)"
+                : "Duty Form Saved! (Draft)")),
       );
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SavedFormDutyScreen(duties: widget.duties),
-        ),
-      );
+      Navigator.pop(context, widget.dutyToEdit != null ? 'updated' : 'saved');
     }
   }
 
@@ -158,7 +192,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   void _sendToApprover() {
     // Validate form before sending
     if (_validateForm()) {
-      final dutyData = {
+      Map<String, dynamic> dutyData = {
         "createdBy": "andhika.nayaka",
         "namesAndDescriptions": _namesAndDescriptions,
         "approverId": _selectedApproverId,
@@ -175,20 +209,38 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
             ? ""
             : "${_selectedDutyDate!.year}-${_selectedDutyDate!.month.toString().padLeft(2, '0')}-${_selectedDutyDate!.day.toString().padLeft(2, '0')}",
         "status": "Waiting",
+        "createdAt":
+            widget.dutyToEdit?["createdAt"] ?? DateTime.now().toIso8601String(),
+        "modifiedAt": DateTime.now().toIso8601String(),
+        "id": widget.dutyToEdit?["id"] ??
+            (widget.duties.isNotEmpty
+                ? widget.duties
+                    .map((d) => d["id"] as int)
+                    .reduce((a, b) => a > b ? a : b) +
+                    1
+                : 1),
       };
 
-      widget.duties.add(dutyData);
+      if (widget.dutyToEdit != null) {
+        // Editing mode: Update existing duty based on 'id'
+        int index =
+            widget.duties.indexWhere((d) => d["id"] == widget.dutyToEdit!["id"]);
+        if (index != -1) {
+          widget.duties[index] = dutyData;
+        }
+      } else {
+        // Creating mode: Add new duty
+        widget.duties.add(dutyData);
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Duty Form Sent to Approver! (Waiting)")),
+        SnackBar(
+            content: Text(widget.dutyToEdit != null
+                ? "Duty Updated! (Waiting)"
+                : "Duty Form Sent to Approver! (Waiting)")),
       );
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SendFormDutyScreen(duties: widget.duties),
-        ),
-      );
+      Navigator.pop(context, 'sent'); // Pass 'sent' as result
     }
   }
 
@@ -250,7 +302,13 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   // ========== UI BUILD WITH BOTTOM APP BAR ==========
   @override
   Widget build(BuildContext context) {
+    bool isEditing = widget.dutyToEdit != null;
+
     return Scaffold(
+      appBar: AppBar(
+        title: Text(isEditing ? "Edit Duty" : "Create Duty"),
+        backgroundColor: Colors.teal,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -270,7 +328,8 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
             Align(
               alignment: Alignment.center,
               child: IconButton(
-                icon: const Icon(Icons.add_circle, color: Colors.teal, size: 30),
+                icon:
+                    const Icon(Icons.add_circle, color: Colors.teal, size: 30),
                 onPressed: _addNameField,
                 tooltip: "Add Employee",
               ),
@@ -292,7 +351,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
               items: _approverList.map((item) {
                 return DropdownMenuItem<String>(
                   value: item["id"],
-                  child: Text(item["name"]!),
+                  child: Text("${item["name"]}"),
                 );
               }).toList(),
               onChanged: (value) {
@@ -468,10 +527,7 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                     padding:
                         const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                   ),
-                  child: const Text(
-                    "Save",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: Text(isEditing ? "Update" : "Save"),
                 ),
                 const SizedBox(width: 20),
                 // Send to Approver Button
@@ -557,7 +613,8 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
                 // Remove button if more than 1 row
                 if (_namesAndDescriptions.length > 1)
                   IconButton(
-                    icon: const Icon(Icons.remove_circle, color: Colors.red),
+                    icon:
+                        const Icon(Icons.remove_circle, color: Colors.red),
                     onPressed: () {
                       setState(() {
                         _namesAndDescriptions.removeAt(index);
@@ -590,7 +647,8 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   String _formatTime(TimeOfDay? time) {
     if (time == null) return "HH:MM";
     final now = DateTime.now();
-    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    final dt =
+        DateTime(now.year, now.month, now.day, time.hour, time.minute);
     final format = DateFormat.jm(); //"6:00 AM"
     return format.format(dt);
   }
@@ -599,5 +657,15 @@ class _CreateDutyFormState extends State<CreateDutyForm> {
   String _formatDate(DateTime? date) {
     if (date == null) return "Select Date";
     return DateFormat('dd-MM-yyyy').format(date);
+  }
+
+  /// Helper method to parse time from "HH:mm:ss" to TimeOfDay
+  TimeOfDay? _parseTime(String time) {
+    try {
+      final parts = time.split(":");
+      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    } catch (e) {
+      return null;
+    }
   }
 }

@@ -5,6 +5,7 @@ import 'duty_spt_screen.dart';
 import 'create_duty_form.dart'; // We'll use this for "edit" button if Draft
 import 'main_screen.dart';
 import 'paidleave_cuti_screen.dart';
+import 'package:intl/intl.dart'; // Import intl for date formatting
 
 class DutyDetailScreen extends StatefulWidget {
   final Map<String, dynamic> duty;
@@ -21,48 +22,108 @@ class DutyDetailScreen extends StatefulWidget {
 }
 
 class _DutyDetailScreenState extends State<DutyDetailScreen> {
-  // We'll use "andhika.nayaka" as the user if the duty is newly created
-  // or "syahrizal" if the duty is approved or so. But let's do it simple:
+  // Updated to dynamically set the created and modified times
+  late String _createdAt;
+  late String _modifiedAt;
 
-  final String _createdAt = "Dec 25 2024 9:32AM";
-  String _modifiedAt = "Dec 25 2024 9:32AM";
+  @override
+  void initState() {
+    super.initState();
+    // Initialize createdAt and modifiedAt based on existing data or current time
+    _createdAt = widget.duty["createdAt"] != null
+        ? DateFormat('MMM dd yyyy hh:mm a')
+            .format(DateTime.parse(widget.duty["createdAt"]))
+        : DateFormat('MMM dd yyyy hh:mm a').format(DateTime.now());
+    _modifiedAt = widget.duty["modifiedAt"] != null
+        ? DateFormat('MMM dd yyyy hh:mm a')
+            .format(DateTime.parse(widget.duty["modifiedAt"]))
+        : _createdAt;
+  }
 
   // ========== ACTION HANDLERS ==========
   void _onEdit() {
-    // 1) We'll pop back, then navigate to the CreateDutyForm to let user re-edit
-    // For demo, let's simulate a direct "edit" by re-creating the draft in the form.
-    final dutyIndex = widget.allDuties.indexOf(widget.duty);
-    if (dutyIndex < 0) return; // not found
-
-    // We'll remove it from the list, so we can re-add after editing
-    // Or we can pass it to CreateDutyForm so user can edit
-    final currentDuty = widget.duty;
-    widget.allDuties.remove(currentDuty);
-
-    Navigator.pop(context); // close detail screen
+    // Navigate to CreateDutyForm with the duty to edit
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CreateDutyForm(duties: widget.allDuties),
+        builder: (_) => CreateDutyForm(
+          duties: widget.allDuties,
+          dutyToEdit: widget.duty, // Pass the duty to edit
+        ),
       ),
-    );
+    ).then((result) {
+      if (result == 'sent' || result == 'updated') {
+        // After sending or updating, navigate back to Duty List Screen
+        Navigator.pop(context); // Pop DutyDetailScreen to go back to DutySPTScreen
+      } else if (result == 'saved') {
+        // After saving/updating as draft, refresh the detail screen
+        setState(() {
+          // Refresh the createdAt and modifiedAt in case they were updated
+          _createdAt = widget.duty["createdAt"] != null
+              ? DateFormat('MMM dd yyyy hh:mm a')
+                  .format(DateTime.parse(widget.duty["createdAt"]))
+              : DateFormat('MMM dd yyyy hh:mm a').format(DateTime.now());
+          _modifiedAt = widget.duty["modifiedAt"] != null
+              ? DateFormat('MMM dd yyyy hh:mm a')
+                  .format(DateTime.parse(widget.duty["modifiedAt"]))
+              : _createdAt;
+        });
+      }
+    });
   }
 
   void _onSend() {
+    // Update the duty status to "Waiting"
     setState(() {
       widget.duty["status"] = "Waiting";
-      _modifiedAt = "Dec 28 2024 10:00AM"; // example of updated time
+      widget.duty["modifiedAt"] = DateTime.now().toIso8601String();
+      _modifiedAt = DateFormat('MMM dd yyyy hh:mm a').format(DateTime.now());
     });
+
+    // Show confirmation SnackBar
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Duty Sent! Status=Waiting")),
     );
+
+    // Navigate back to duty_spt_screen.dart
+    Navigator.pop(context);
   }
 
   void _onDelete() {
-    widget.allDuties.remove(widget.duty);
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Duty Deleted!")),
+    // Confirm deletion with the user
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Duty"),
+          content: const Text("Are you sure you want to delete this duty?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Dismiss dialog
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                // Perform deletion
+                setState(() {
+                  widget.allDuties.remove(widget.duty);
+                });
+                Navigator.of(context).pop(); // Dismiss dialog
+                Navigator.pop(context); // Navigate back to DutySPTScreen
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Duty Deleted!")),
+                );
+              },
+              child: const Text(
+                "Delete",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -80,7 +141,6 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
         title: const Text("Request Duty Detail"),
         backgroundColor: Colors.teal,
       ),
-      // Removed the Drawer to eliminate the hamburger menu
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth > 600) {
@@ -101,10 +161,29 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const CreateDutyForm(duties: []),
+                              builder: (_) => CreateDutyForm(
+                                duties: widget.allDuties,
+                              ),
                             ),
-                          ).then((_) {
-                            setState(() {});
+                          ).then((result) {
+                            if (result == 'sent' || result == 'updated') {
+                              Navigator.pop(context); // Pop DutyDetailScreen
+                            } else if (result == 'saved') {
+                              setState(() {
+                                // Refresh the state if needed
+                                _createdAt = widget.duty["createdAt"] != null
+                                    ? DateFormat('MMM dd yyyy hh:mm a').format(
+                                        DateTime.parse(
+                                            widget.duty["createdAt"]))
+                                    : DateFormat('MMM dd yyyy hh:mm a')
+                                        .format(DateTime.now());
+                                _modifiedAt = widget.duty["modifiedAt"] != null
+                                    ? DateFormat('MMM dd yyyy hh:mm a').format(
+                                        DateTime.parse(
+                                            widget.duty["modifiedAt"]))
+                                    : _createdAt;
+                              });
+                            }
                           });
                         },
                         child: const Text("Create Duty Form"),
@@ -119,7 +198,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>  MainScreen(),
+                              builder: (_) => MainScreen(),
                             ),
                             (Route<dynamic> route) => false,
                           );
@@ -174,12 +253,15 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
 
     // If createdBy or user info is not set, let's default to "andhika.nayaka"
     final createdBy = duty["createdBy"] ?? "andhika.nayaka";
-    final approverName = "syahrizal";
+    final approverName = _getApproverName(duty["approverId"]); // Fetch dynamically based on approverId
 
     // We'll parse "Waiting" or "Approved" or "Draft" ...
-    final displayedDate = dateStr.isEmpty ? "20 December 2024" : dateStr;
-    final displayedStart = startTimeStr.isEmpty ? "09:31:32" : startTimeStr;
-    final displayedEnd = endTimeStr.isEmpty ? "16:30:00" : endTimeStr;
+    final displayedDate =
+        dateStr.isEmpty ? "20 December 2024" : _formatDate(dateStr);
+    final displayedStart =
+        startTimeStr.isEmpty ? "09:31:32" : _formatTime(startTimeStr);
+    final displayedEnd =
+        endTimeStr.isEmpty ? "16:30:00" : _formatTime(endTimeStr);
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -272,6 +354,25 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     );
   }
 
+  /// Fetch approver's name based on approverId
+  String _getApproverName(String? approverId) {
+    if (approverId == null || approverId.isEmpty) return "N/A";
+
+    // Define the approver list here or fetch from a data source
+    final List<Map<String, String>> _approverList = [
+      {"id": "60001", "name": "John Doe (CEO)"},
+      {"id": "60002", "name": "Jane Smith (CFO)"},
+      {"id": "60003", "name": "Robert Brown (COO)"},
+    ];
+
+    final approver = _approverList.firstWhere(
+      (element) => element["id"] == approverId,
+      orElse: () => {"id": "", "name": "Unknown Approver"},
+    );
+
+    return approver["name"]!;
+  }
+
   /// Build the bottom row of Action Buttons
   Widget _buildActionButtons(String status) {
     // If it's a DRAFT -> We can Edit, Send, or Delete
@@ -315,6 +416,26 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
         label: Text("Print ($status)"),
         onPressed: _onPrint,
       );
+    }
+  }
+
+  /// Helper method to format time from "HH:mm:ss" to "hh:mm a"
+  String _formatTime(String time) {
+    try {
+      DateTime parsedTime = DateTime.parse("1970-01-01T$time");
+      return DateFormat('hh:mm a').format(parsedTime);
+    } catch (e) {
+      return time;
+    }
+  }
+
+  /// Helper method to format date from "YYYY-MM-DD" to "dd-MM-yyyy"
+  String _formatDate(String date) {
+    try {
+      DateTime parsedDate = DateTime.parse(date);
+      return DateFormat('dd-MM-yyyy').format(parsedDate);
+    } catch (e) {
+      return date;
     }
   }
 }
