@@ -7,6 +7,7 @@ import 'paidleave_cuti_detail_screen.dart'; // Import detail screen
 import 'create_paidleave_cuti_form.dart'; // Import create/edit form screen
 import 'main_screen.dart';
 import 'duty_spt_screen.dart';
+import 'package:uuid/uuid.dart'; // Import UUID package
 
 class PaidLeaveCutiScreen extends StatefulWidget {
   const PaidLeaveCutiScreen({Key? key}) : super(key: key);
@@ -16,12 +17,16 @@ class PaidLeaveCutiScreen extends StatefulWidget {
 }
 
 class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
-  // Dummy data for paid leaves
+  // Initialize UUID generator
+  final Uuid _uuid = Uuid();
+
+  // Dummy data for paid leaves with unique IDs
   List<Map<String, dynamic>> paidLeaves = [
     {
+      "id": "1",
       "datetime": "2024-12-24 09:14:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT",
       "fromDate": "24 December 2024",
       "toDate": "24 December 2024",
@@ -30,9 +35,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "2",
       "datetime": "2024-12-18 08:07:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT TANPA SERTIFIKAT",
       "fromDate": "17 December 2024",
       "toDate": "17 December 2024",
@@ -41,9 +47,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "3",
       "datetime": "2024-12-04 14:57:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT OPNAME",
       "fromDate": "27 December 2024",
       "toDate": "27 December 2024",
@@ -52,9 +59,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "4",
       "datetime": "2024-09-02 16:08:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN IBADAH",
       "fromDate": "14 October 2024",
       "toDate": "16 October 2024",
@@ -63,9 +71,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "5",
       "datetime": "2024-02-24 14:27:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT",
       "fromDate": "26 February 2024",
       "toDate": "26 February 2024",
@@ -74,9 +83,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "6",
       "datetime": "2024-02-07 16:48:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT TANPA SERTIFIKAT",
       "fromDate": "04 March 2024",
       "toDate": "08 March 2024",
@@ -85,9 +95,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "7",
       "datetime": "2024-01-04 09:19:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT OPNAME",
       "fromDate": "22 January 2024",
       "toDate": "24 January 2024",
@@ -96,9 +107,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "8",
       "datetime": "2023-11-10 05:51:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT TANPA SERTIFIKAT",
       "fromDate": "10 November 2023",
       "toDate": "10 November 2023",
@@ -107,9 +119,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "Kirim SAP",
     },
     {
+      "id": "9",
       "datetime": "2022-11-28 08:36:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT",
       "fromDate": "12 December 2022",
       "toDate": "12 December 2022",
@@ -117,11 +130,12 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "sap": "YES",
       "act": "",
     },
-    // Tambahan agar total 15 data
+    // Additional entries to make total 15 data
     {
+      "id": "10",
       "datetime": "2024-05-01 10:00:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT",
       "fromDate": "01 May 2024",
       "toDate": "02 May 2024",
@@ -130,9 +144,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "11",
       "datetime": "2024-06-12 09:30:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN IBADAH",
       "fromDate": "12 June 2024",
       "toDate": "12 June 2024",
@@ -141,9 +156,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "12",
       "datetime": "2024-07-25 08:15:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT TANPA SERTIFIKAT",
       "fromDate": "25 July 2024",
       "toDate": "25 July 2024",
@@ -152,9 +168,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "13",
       "datetime": "2024-08-20 13:40:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT OPNAME",
       "fromDate": "20 August 2024",
       "toDate": "23 August 2024",
@@ -163,9 +180,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "14",
       "datetime": "2023-12-10 07:55:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN IBADAH",
       "fromDate": "10 December 2023",
       "toDate": "10 December 2023",
@@ -174,9 +192,10 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       "act": "",
     },
     {
+      "id": "15",
       "datetime": "2023-10-05 15:00:00",
       "nik": "4163",
-      "nama": "PRITA NUR RIZKY FARIDIANI",
+      "nama": "andhika.nayaka",
       "jenisCuti": "IZIN SAKIT TANPA SERTIFIKAT",
       "fromDate": "05 October 2023",
       "toDate": "06 October 2023",
@@ -248,8 +267,8 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
         if (sortColumn == "datetime" ||
             sortColumn == "fromDate" ||
             sortColumn == "toDate") {
-          DateTime aDate = _parseDate(aValue);
-          DateTime bDate = _parseDate(bValue);
+          DateTime aDate = _parseDateTimeOrDate(aValue);
+          DateTime bDate = _parseDateTimeOrDate(bValue);
           return ascending ? aDate.compareTo(bDate) : bDate.compareTo(aDate);
         } else {
           return ascending
@@ -261,8 +280,11 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       // Update filtered list
       filteredPaidLeaves = tempFiltered;
 
-      // Reset to first page
-      currentPage = 1;
+      // Reset to first page if current page exceeds total pages
+      int totalPages = (filteredPaidLeaves.length / recordsPerPage).ceil();
+      if (currentPage > totalPages && totalPages > 0) {
+        currentPage = totalPages;
+      }
     });
   }
 
@@ -322,11 +344,36 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
     });
   }
 
-  /// Helper method to parse date from "dd MMMM yyyy" to DateTime
+  /// Helper method to parse date from "dd MMMM yyyy" or "yyyy-MM-dd" to DateTime
   DateTime _parseDate(String dateStr) {
     try {
       return DateFormat('dd MMMM yyyy').parse(dateStr);
     } catch (e) {
+      try {
+        return DateFormat('yyyy-MM-dd').parse(dateStr);
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+  }
+
+  /// Helper method to parse datetime or date
+  DateTime _parseDateTimeOrDate(dynamic value) {
+    if (value is String) {
+      // Try parsing as datetime
+      try {
+        return DateFormat('yyyy-MM-dd HH:mm:ss').parse(value);
+      } catch (e) {
+        // If fails, try as date
+        try {
+          return _parseDate(value);
+        } catch (e) {
+          return DateTime.now();
+        }
+      }
+    } else if (value is DateTime) {
+      return value;
+    } else {
       return DateTime.now();
     }
   }
@@ -352,7 +399,7 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Banner
+          // Banner and Main Content
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -416,19 +463,27 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
   }
 
   /// Sidebar widget displaying different statuses and counts
-  Widget _buildSidebarContent() {
+  Widget _buildSidebar() {
     final allCount = paidLeaves.length;
     final draftCount = paidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "draft")
+        .where((leave) =>
+            (leave["status"] ?? "").toString().toLowerCase() == "draft")
         .length;
     final waitingCount = paidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "waiting")
+        .where((leave) =>
+            (leave["status"] ?? "").toString().toLowerCase() == "waiting")
         .length;
     final approvedCount = paidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "approved")
+        .where((leave) =>
+            (leave["status"] ?? "").toString().toLowerCase() == "approved")
         .length;
     final rejectedCount = paidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "rejected")
+        .where((leave) =>
+            (leave["status"] ?? "").toString().toLowerCase() == "rejected")
+        .length;
+    final returnedCount = paidLeaves
+        .where((leave) =>
+            (leave["status"] ?? "").toString().toLowerCase() == "returned")
         .length;
 
     return Container(
@@ -438,25 +493,42 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Create Paid Leave/Cuti Form Button
+            // Button to Create Paid Leave/Cuti Form
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
                 padding:
                     const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               ),
-              onPressed: () {
+              onPressed: () async {
                 // Navigate to CreatePaidLeaveCutiForm
-                Navigator.push(
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => CreatePaidLeaveCutiForm(
                       paidLeaves: paidLeaves,
                     ),
                   ),
-                ).then((_) {
-                  setState(() {});
-                });
+                );
+
+                if (result != null && result is Map<String, dynamic>) {
+                  setState(() {
+                    // Check if it's an update or a new entry
+                    int existingIndex = paidLeaves.indexWhere(
+                        (leave) => leave["id"] == result["id"]);
+                    if (existingIndex != -1) {
+                      // Update existing leave
+                      paidLeaves[existingIndex] = result;
+                    } else {
+                      // Add new leave
+                      paidLeaves.add(result);
+                    }
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Paid Leave/Cuti Added Successfully!")),
+                  );
+                }
               },
               child: const Text("Create Paid Leave/Cuti Form"),
             ),
@@ -471,7 +543,7 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
             const SizedBox(height: 10),
             _buildStatusItem("Draft", draftCount, Colors.grey),
             _buildStatusItem("Waiting", waitingCount, Colors.orange),
-            _buildStatusItem("Returned", 0, Colors.blue),
+            _buildStatusItem("Returned", returnedCount, Colors.blue),
             _buildStatusItem("Approved", approvedCount, Colors.green),
             _buildStatusItem("Rejected", rejectedCount, Colors.red),
             const Divider(),
@@ -501,7 +573,7 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
   }
 
   /// Widget for each status item in the sidebar
-  Widget _buildStatusItemSidebar(String status, int count, Color color) {
+  Widget _buildStatusItem(String status, int count, Color color) {
     return InkWell(
       onTap: () {
         setState(() {
@@ -514,15 +586,16 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           children: [
-            Text(
-              status,
-              style: TextStyle(
-                color: selectedStatus == status ? Colors.teal : Colors.black,
-                fontWeight:
-                    selectedStatus == status ? FontWeight.bold : FontWeight.normal,
+            Expanded(
+              child: Text(
+                status,
+                style: TextStyle(
+                  color: selectedStatus == status ? Colors.teal : Colors.black,
+                  fontWeight:
+                      selectedStatus == status ? FontWeight.bold : FontWeight.normal,
+                ),
               ),
             ),
-            const Spacer(),
             CircleAvatar(
               backgroundColor: color,
               radius: 10,
@@ -538,13 +611,14 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
   }
 
   /// Widget for each leave quota item in the sidebar
-  Widget _buildQuotaItemSidebar(String label, int totalQuota, int usedQuota) {
+  Widget _buildQuotaItem(String label, int totalQuota, int usedQuota) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3.0),
       child: Row(
         children: [
-          Text(label),
-          const Spacer(),
+          Expanded(
+            child: Text(label),
+          ),
           Text("$usedQuota/$totalQuota"),
         ],
       ),
@@ -1007,142 +1081,6 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
     );
   }
 
-  /// Sidebar widget displaying different statuses and counts
-  Widget _buildSidebar() {
-    final allCount = paidLeaves.length;
-    final draftCount = paidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "draft")
-        .length;
-    final waitingCount = paidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "waiting")
-        .length;
-    final approvedCount = paidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "approved")
-        .length;
-    final rejectedCount = paidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "rejected")
-        .length;
-
-    return Container(
-      color: const Color(0xFFf8f9fa),
-      padding: const EdgeInsets.all(16.0),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Create Paid Leave/Cuti Form Button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              ),
-              onPressed: () {
-                // Navigate to CreatePaidLeaveCutiForm
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreatePaidLeaveCutiForm(
-                      paidLeaves: paidLeaves,
-                    ),
-                  ),
-                ).then((_) {
-                  setState(() {});
-                });
-              },
-              child: const Text("Create Paid Leave/Cuti Form"),
-            ),
-            const SizedBox(height: 20),
-            const Text("ALL LEAVE",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            _buildStatusItem("All", allCount, Colors.teal),
-            const Divider(),
-            const Text("AS A CONCEPTOR / MAKER",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            _buildStatusItem("Draft", draftCount, Colors.grey),
-            _buildStatusItem("Waiting", waitingCount, Colors.orange),
-            _buildStatusItem("Returned", 0, Colors.blue),
-            _buildStatusItem("Approved", approvedCount, Colors.green),
-            _buildStatusItem("Rejected", rejectedCount, Colors.red),
-            const Divider(),
-            const Text("AS AN APPROVAL",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 10),
-            _buildStatusItem("Need Approve", 0, Colors.orange),
-            _buildStatusItem("Return", 0, Colors.blue),
-            _buildStatusItem("Approve", 0, Colors.green),
-            _buildStatusItem("Reject", 0, Colors.red),
-            const Divider(),
-            const SizedBox(height: 20),
-
-            // Leave Quota Section (Optional, you can customize it)
-            const Text(
-              "LEAVE QUOTA",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 10),
-            _buildQuotaItem("Quota Cuti Tahunan", 10, 5),
-            _buildQuotaItem("Quota Cuti Alasan Penting", 5, 2),
-            _buildQuotaItem("Quota Cuti Sakit", 15, 10),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Widget for each status item in the sidebar
-  Widget _buildStatusItem(String status, int count, Color color) {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          selectedStatus = status;
-          currentPage = 1;
-          filterPaidLeaves();
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Text(
-              status,
-              style: TextStyle(
-                color: selectedStatus == status ? Colors.teal : Colors.black,
-                fontWeight:
-                    selectedStatus == status ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            const Spacer(),
-            CircleAvatar(
-              backgroundColor: color,
-              radius: 10,
-              child: Text(
-                count.toString(),
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Widget for each leave quota item in the sidebar
-  Widget _buildQuotaItem(String label, int totalQuota, int usedQuota) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3.0),
-      child: Row(
-        children: [
-          Text(label),
-          const Spacer(),
-          Text("$usedQuota/$totalQuota"),
-        ],
-      ),
-    );
-  }
-
   /// Card-like leave item for both desktop and mobile
   Widget _buildPaidLeaveCard(Map<String, dynamic> leave) {
     // Determine status color
@@ -1172,9 +1110,9 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       elevation: 2,
       child: InkWell(
-        onTap: () {
+        onTap: () async {
           // Navigate to PaidLeaveCutiDetailScreen
-          Navigator.push(
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => PaidLeaveCutiDetailScreen(
@@ -1182,9 +1120,23 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
                 allPaidLeaves: paidLeaves,
               ),
             ),
-          ).then((_) {
-            setState(() {}); // Refresh after returning from detail
-          });
+          );
+
+          if (result != null && result is Map<String, dynamic>) {
+            setState(() {
+              // Find the index based on 'id'
+              int updatedIndex =
+                  paidLeaves.indexWhere((l) => l["id"] == result["id"]);
+              if (updatedIndex != -1) {
+                paidLeaves[updatedIndex] = result;
+              }
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Paid Leave/Cuti Updated Successfully!")),
+            );
+          }
+          // If result is null, it might have been deleted; handle accordingly if needed
         },
         child: Padding(
           padding: const EdgeInsets.all(12.0),
@@ -1275,7 +1227,7 @@ class _PaidLeaveCutiScreenState extends State<PaidLeaveCutiScreen> {
     }
   }
 
-  /// Helper method to format date from "dd MMMM yyyy" to "dd-MM-yyyy"
+  /// Helper method to format date from "dd MMMM yyyy" or "yyyy-MM-dd" to "dd-MM-yyyy"
   String _formatDate(String date) {
     try {
       DateTime parsedDate = _parseDate(date);

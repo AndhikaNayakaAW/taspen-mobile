@@ -3,10 +3,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
 import 'package:intl/intl.dart'; // Import the intl package for DateFormat
-import 'duty_spt_screen.dart';
-import 'create_paidleave_cuti_form.dart'; // We'll use this for "edit" button if Draft
-import 'main_screen.dart';
-import 'paidleave_cuti_screen.dart';
+import 'create_paidleave_cuti_form.dart'; // Import for "Edit" functionality
 
 class PaidLeaveCutiDetailScreen extends StatefulWidget {
   final Map<String, dynamic> paidLeave;
@@ -23,60 +20,76 @@ class PaidLeaveCutiDetailScreen extends StatefulWidget {
       _PaidLeaveCutiDetailScreenState();
 }
 
-class _PaidLeaveCutiDetailScreenState extends State<PaidLeaveCutiDetailScreen> {
-  // Tanggal dibuat dan dimodifikasi
-  final String _createdAt = "Dec 25 2024 9:32AM";
-  String _modifiedAt = "Dec 25 2024 9:32AM";
+class _PaidLeaveCutiDetailScreenState
+    extends State<PaidLeaveCutiDetailScreen> {
+  // Variables to hold createdAt and modifiedAt timestamps
+  late String _createdAt;
+  late String _modifiedAt;
 
+  // Variable to hold the selected status
   String _selectedStatus = "All";
-  int _currentPage = 1;
 
-  // Missing definitions
-  String _sortColumn = "fromDate";
-  bool _ascending = true;
-  int _recordsPerPage = 10;
-  String _searchQuery = "";
-
-  void _sortPaidLeaves(String column) {
-    setState(() {
-      _sortColumn = column;
-      // Implement your custom sorting logic here if needed
-    });
+  @override
+  void initState() {
+    super.initState();
+    // Initialize createdAt and modifiedAt from paidLeave map
+    _createdAt = widget.paidLeave["createdAt"] ??
+        widget.paidLeave["datetime"] ??
+        "N/A";
+    _modifiedAt = widget.paidLeave["modifiedAt"] ?? "N/A";
   }
 
-  // ========== HANDLER AKSI ==========
+  // Action Handlers
+
   void _onEdit() {
-    // Mendapatkan indeks pengajuan dari daftar semua pengajuan
-    final paidLeaveIndex = widget.allPaidLeaves.indexOf(widget.paidLeave);
-    if (paidLeaveIndex < 0) return; // Tidak ditemukan
+    // Ensure that 'id' is treated as String
+    final String leaveId = widget.paidLeave["id"];
+    final paidLeaveIndex =
+        widget.allPaidLeaves.indexWhere((leave) => leave["id"] == leaveId);
+    if (paidLeaveIndex < 0) return; // Leave not found
 
-    // Menghapus pengajuan saat ini dari daftar
-    final currentPaidLeave = widget.paidLeave;
-    widget.allPaidLeaves.remove(currentPaidLeave);
-
-    // Menavigasi kembali dan membuka form edit
-    Navigator.pop(context); // Menutup layar detail
+    // Navigate to the form with existing data without awaiting a result
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CreatePaidLeaveCutiForm(paidLeaves: widget.allPaidLeaves),
+        builder: (_) => CreatePaidLeaveCutiForm(
+          paidLeaves: widget.allPaidLeaves,
+          existingLeave: widget.paidLeave,
+          leaveIndex: paidLeaveIndex,
+        ),
       ),
     );
+
+    // No need to await and handle the result since the form screen redirects to the main screen
   }
 
+  /// Sends the draft leave by updating its status to "Waiting" and passing it back
   void _onSend() {
     setState(() {
+      // Update the status and modifiedAt fields
       widget.paidLeave["status"] = "Waiting";
-      _modifiedAt = "Dec 28 2024 10:00AM"; // Contoh waktu yang diperbarui
+      widget.paidLeave["modifiedAt"] =
+          DateFormat('MMM d yyyy h:mm a').format(DateTime.now());
     });
+
+    // Navigate back and pass the updated leave
+    Navigator.pop(context, widget.paidLeave);
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Paid Leave/Cuti Sent! Status=Waiting")),
     );
   }
 
   void _onDelete() {
-    widget.allPaidLeaves.remove(widget.paidLeave);
-    Navigator.pop(context);
+    setState(() {
+      // Remove the leave from allPaidLeaves by id
+      widget.allPaidLeaves.removeWhere(
+          (leave) => leave["id"] == widget.paidLeave["id"]);
+    });
+
+    // Navigate back and pass null or a status
+    Navigator.pop(context, null);
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Paid Leave/Cuti Deleted!")),
     );
@@ -85,8 +98,41 @@ class _PaidLeaveCutiDetailScreenState extends State<PaidLeaveCutiDetailScreen> {
   void _onPrint() {
     final status = (widget.paidLeave["status"] ?? "").toString();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Print Paid Leave/Cuti (status = $status) - dummy!")),
+      SnackBar(
+          content: Text(
+              "Print Paid Leave/Cuti (status = $status) - dummy!")),
     );
+    // Implement actual print functionality if needed
+  }
+
+  /// Helper method to format date from 'dd MMMM yyyy' or 'yyyy-MM-dd' to 'dd-MM-yyyy'
+  String _formatDate(String date) {
+    try {
+      DateTime parsedDate = DateFormat('dd MMMM yyyy').parse(date);
+      return DateFormat('dd-MM-yyyy').format(parsedDate);
+    } catch (e) {
+      try {
+        DateTime parsedDate = DateTime.parse(date);
+        return DateFormat('dd-MM-yyyy').format(parsedDate);
+      } catch (e) {
+        return date;
+      }
+    }
+  }
+
+  /// Helper method to format datetime
+  String _formatDateTime(String datetime) {
+    try {
+      DateTime parsedDate = DateTime.parse(datetime);
+      return DateFormat('dd-MM-yyyy HH:mm').format(parsedDate);
+    } catch (e) {
+      try {
+        DateTime parsedDate = DateFormat('dd MMMM yyyy').parse(datetime);
+        return DateFormat('dd-MM-yyyy').format(parsedDate);
+      } catch (e) {
+        return datetime;
+      }
+    }
   }
 
   @override
@@ -96,7 +142,7 @@ class _PaidLeaveCutiDetailScreenState extends State<PaidLeaveCutiDetailScreen> {
         title: const Text("Paid Leave/Cuti Detail"),
         backgroundColor: Colors.teal,
       ),
-      // Menghapus Drawer untuk menghilangkan tombol hamburger
+      // Removing Drawer to eliminate the hamburger button
       body: LayoutBuilder(
         builder: (context, constraints) {
           bool isDesktop = constraints.maxWidth > 600;
@@ -117,7 +163,7 @@ class _PaidLeaveCutiDetailScreenState extends State<PaidLeaveCutiDetailScreen> {
               : SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Sidebar atas tetap untuk pengguna mobile
+                      // Sidebar remains on top for mobile users
                       Container(
                         width: double.infinity,
                         color: const Color(0xFFf8f9fa),
@@ -139,231 +185,372 @@ class _PaidLeaveCutiDetailScreenState extends State<PaidLeaveCutiDetailScreen> {
 
   Widget _buildDetailContent({required bool isMobile}) {
     final paidLeave = widget.paidLeave;
-    final description = paidLeave["jenisCuti"] ?? "No Title";
-    final status = paidLeave["status"] ?? "Draft";
+    final jenisCuti = paidLeave["jenisCuti"] ?? "Jenis Cuti Tidak Diketahui";
+    final nama = paidLeave["nama"] ?? "Nama Tidak Diketahui";
+    final nik = paidLeave["nik"] ?? "NIK Tidak Diketahui";
     final fromDateStr = paidLeave["fromDate"] ?? "";
     final toDateStr = paidLeave["toDate"] ?? "";
-    final jenisCuti = paidLeave["jenisCuti"] ?? "Jenis Cuti Tidak Diketahui";
-    final alamat = paidLeave["alamat"] ?? "Tidak Ada Alamat";
-    final bukti = paidLeave["bukti"] ?? "Tidak Ada Bukti";
-
-    // Jika createdBy atau info pengguna tidak diset, default ke "andhika.nayaka"
+    final status = paidLeave["status"] ?? "Draft";
+    final sap = paidLeave["sap"] ?? "";
+    final act = paidLeave["act"] ?? "";
+    final alamatIzinSakit = paidLeave["alamatIzinSakit"] ?? "";
+    final deskripsiIzinSakit = paidLeave["deskripsiIzinSakit"] ?? "";
+    final alamatIzinIbadah = paidLeave["alamatIzinIbadah"] ?? "";
+    final deskripsiIzinIbadah = paidLeave["deskripsiIzinIbadah"] ?? "";
+    final buktiIzinSakit = paidLeave["buktiIzinSakit"] ?? "";
+    final buktiIzinIbadah = paidLeave["buktiIzinIbadah"] ?? "";
+    final approverIds = List<String>.from(paidLeave["approverIds"] ?? []);
+    final approverNames = approverIds
+        .map((id) => _getApproverNameById(id))
+        .where((name) => name != null)
+        .cast<String>()
+        .toList();
     final createdBy = paidLeave["createdBy"] ?? "andhika.nayaka";
-    final approverName = paidLeave["approverName"] ?? "syahrizal";
-
-    // Parsing tanggal dan waktu
-    final displayedFromDate = fromDateStr.isEmpty ? "20 December 2024" : fromDateStr;
-    final displayedToDate = toDateStr.isEmpty ? "25 December 2024" : toDateStr;
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Detail Paid Leave/Cuti",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          // =========== LEAVE DETAILS ===========
+          Text(
+            "$jenisCuti oleh $createdBy",
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 20),
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 8),
+          Text(
+            "Created At: $_createdAt",
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          Text(
+            "Modified At: $_modifiedAt",
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 10),
+          const Divider(),
+          const SizedBox(height: 10),
+
+          // NIK and Submission Date
+          Row(
+            children: [
+              const Icon(Icons.badge, size: 16, color: Colors.grey),
+              const SizedBox(width: 4),
+              Text(
+                "NIK: $nik",
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.date_range, size: 16, color: Colors.grey),
+              const SizedBox(width: 4),
+              Text(
+                "From: ${_formatDate(fromDateStr)}",
+                style:
+                    const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                "To: ${_formatDate(toDateStr)}",
+                style:
+                    const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.description, size: 16, color: Colors.grey),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  "Deskripsi: ${paidLeave["deskripsi"] ?? "Tidak Ada Deskripsi"}",
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Specific fields based on leave type
+          if (jenisCuti == "Izin Sakit") ...[
+            Row(
               children: [
-                // Baris Judul dan Timestamps
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "$jenisCuti oleh $createdBy",
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Created: $_createdAt",
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    Text(
-                      "Modified: $_modifiedAt",
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
+                const Icon(Icons.home, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    "Alamat Selama Izin Sakit: $alamatIzinSakit",
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text("From Date: ${_formatDate(fromDateStr)}"),
-                Text("To Date: ${_formatDate(toDateStr)}"),
-                const SizedBox(height: 10),
-                const Divider(),
-
-                // Created By
-                Row(
-                  children: const [
-                    Icon(Icons.person),
-                    SizedBox(width: 4),
-                    Text(
-                      "Created By:",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text("Nama : $createdBy"),
-                Text("NIK : 4163 (dummy)"),
-                Text("Jabatan : APPLICATION SUPPORT STAFF"),
-                const Divider(),
-
-                // Alamat Selama Cuti
-                Row(
-                  children: const [
-                    Icon(Icons.home),
-                    SizedBox(width: 4),
-                    Text(
-                      "Alamat Selama Cuti:",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text("Alamat : $alamat"),
-                const SizedBox(height: 10),
-                const Divider(),
-
-                // Bukti Cuti
-                Row(
-                  children: const [
-                    Icon(Icons.upload_file),
-                    SizedBox(width: 4),
-                    Text(
-                      "Bukti Cuti:",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text("Bukti : $bukti"),
-                const SizedBox(height: 10),
-                const Divider(),
-
-                // Approver
-                Row(
-                  children: const [
-                    Icon(Icons.approval),
-                    SizedBox(width: 4),
-                    Text(
-                      "Approver",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text("Nama : $approverName"),
-                Text("NIK : 3713"),
-                Text("Jabatan : SENIOR PROGRAMMER"),
-
-                const SizedBox(height: 20),
-                _buildActionButtons(status, isMobile: isMobile),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.text_fields, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    "Deskripsi Izin Sakit: $deskripsiIzinSakit",
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.attach_file, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    "Bukti Izin Sakit: $buktiIzinSakit",
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ] else if (jenisCuti == "Izin Ibadah") ...[
+            Row(
+              children: [
+                const Icon(Icons.home, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    "Alamat Selama Izin Ibadah: $alamatIzinIbadah",
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.text_fields, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    "Deskripsi Izin Ibadah: $deskripsiIzinIbadah",
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.attach_file, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    "Bukti Izin Ibadah: $buktiIzinIbadah",
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          const Divider(),
+          const SizedBox(height: 10),
+
+          // Approver Section
+          Row(
+            children: [
+              const Icon(Icons.approval, size: 16, color: Colors.grey),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  "Approver(s): ${approverNames.isNotEmpty ? approverNames.join(', ') : "Tidak Ada Approver"}",
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 8),
+
+          // Status
+          Row(
+            children: [
+              const Icon(Icons.info, size: 16, color: Colors.grey),
+              const SizedBox(width: 4),
+              Container(
+                decoration: BoxDecoration(
+                  color: _getStatusColor(status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                      color: _getStatusColor(status),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // =========== ACTION BUTTONS ===========
+          _buildActionButtons(status),
         ],
       ),
     );
   }
 
-  /// Membangun aksi tombol berdasarkan status pengajuan
-  Widget _buildActionButtons(String status, {required bool isMobile}) {
-    // Jika status adalah DRAFT -> Bisa Edit, Send, atau Delete
+  /// Builds action buttons based on the status of the leave
+  Widget _buildActionButtons(String status) {
+    // If status is DRAFT -> Can Edit, Send, or Delete
     if (status.toLowerCase() == "draft") {
-      return isMobile
-          ? Column(
-              children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.edit),
-                  label: const Text("Edit"),
-                  onPressed: _onEdit,
+      return Column(
+        children: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.edit),
+            label: const Text("Edit"),
+            onPressed: _onEdit,
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50), // Make buttons full width
+            ),
+          ),
+          const SizedBox(height: 10),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.send),
+            label: const Text("Send"),
+            onPressed: _onSend,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              minimumSize: const Size.fromHeight(50),
+            ),
+          ),
+          const SizedBox(height: 10),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.delete),
+            label: const Text("Delete"),
+            onPressed: () {
+              // Confirmation dialog before deleting
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("Confirm Delete"),
+                  content: const Text("Are you sure you want to delete this leave?"),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context), // Cancel
+                      child: const Text("Cancel"),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close dialog
+                        _onDelete();
+                      },
+                      child: const Text(
+                        "Delete",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.send),
-                  label: const Text("Send"),
-                  onPressed: _onSend,
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.delete),
-                  label: const Text("Delete"),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: _onDelete,
-                ),
-              ],
-            )
-          : Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.edit),
-                    label: const Text("Edit"),
-                    onPressed: _onEdit,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.send),
-                    label: const Text("Send"),
-                    onPressed: _onSend,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.delete),
-                    label: const Text("Delete"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    onPressed: _onDelete,
-                  ),
-                ),
-              ],
-            );
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              minimumSize: const Size.fromHeight(50),
+            ),
+          ),
+        ],
+      );
     }
-    // Jika status adalah WAITING atau APPROVED -> Hanya bisa Print
+    // If status is WAITING or APPROVED -> Only Print
     else if (status.toLowerCase() == "waiting" ||
         status.toLowerCase() == "approved") {
       return ElevatedButton.icon(
         icon: const Icon(Icons.print),
         label: Text("Print ($status)"),
         onPressed: _onPrint,
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size.fromHeight(50),
+        ),
       );
     }
-    // Jika status lainnya (seperti REJECTED, RETURNED, dll.) -> Hanya bisa Print
+    // For other statuses like REJECTED, RETURNED, etc. -> Only Print
     else {
       return ElevatedButton.icon(
         icon: const Icon(Icons.print),
         label: Text("Print ($status)"),
         onPressed: _onPrint,
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size.fromHeight(50),
+        ),
       );
     }
   }
 
-  /// Sidebar widget menampilkan berbagai status dan jumlahnya
+  /// Retrieves the approver's name based on their ID
+  String? _getApproverNameById(String id) {
+    // Define the same approver list as in CreatePaidLeaveCutiForm
+    final List<Map<String, String>> approverList = [
+      {"id": "60001", "name": "John Doe (CEO)"},
+      {"id": "60002", "name": "Jane Smith (CFO)"},
+      {"id": "60003", "name": "Robert Brown (COO)"},
+    ];
+
+    try {
+      return approverList.firstWhere((item) => item["id"] == id)["name"];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Retrieves the color based on the status
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case "draft":
+        return Colors.grey;
+      case "waiting":
+        return Colors.orange;
+      case "approved":
+        return Colors.green;
+      case "rejected":
+        return Colors.red;
+      case "returned":
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  /// Sidebar widget displaying various statuses and their counts
   Widget _buildSidebar() {
     final allCount = widget.allPaidLeaves.length;
     final draftCount = widget.allPaidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "draft")
+        .where((leave) =>
+            (leave["status"] ?? "").toString().toLowerCase() == "draft")
         .length;
     final waitingCount = widget.allPaidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "waiting")
+        .where((leave) =>
+            (leave["status"] ?? "").toString().toLowerCase() == "waiting")
         .length;
     final approvedCount = widget.allPaidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "approved")
+        .where((leave) =>
+            (leave["status"] ?? "").toString().toLowerCase() == "approved")
         .length;
     final rejectedCount = widget.allPaidLeaves
-        .where((leave) => (leave["status"] ?? "").toString().toLowerCase() == "rejected")
+        .where((leave) =>
+            (leave["status"] ?? "").toString().toLowerCase() == "rejected")
         .length;
 
     return Container(
@@ -373,22 +560,50 @@ class _PaidLeaveCutiDetailScreenState extends State<PaidLeaveCutiDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Tombol Create Paid Leave/Cuti Form
+            // Button to Create Paid Leave/Cuti Form
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
                 padding:
                     const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               ),
-              onPressed: () {
-                // Navigasi ke CreatePaidLeaveCutiForm
+              onPressed: () async {
+                // Navigate to CreatePaidLeaveCutiForm
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => CreatePaidLeaveCutiForm(paidLeaves: widget.allPaidLeaves),
+                    builder: (_) => CreatePaidLeaveCutiForm(
+                      paidLeaves: widget.allPaidLeaves,
+                    ),
                   ),
-                ).then((_) {
-                  setState(() {});
+                ).then((updatedLeave) {
+                  if (updatedLeave != null && updatedLeave is Map<String, dynamic>) {
+                    setState(() {
+                      // Check if it's an update or a new entry
+                      int existingIndex = widget.allPaidLeaves.indexWhere(
+                          (leave) => leave["id"] == updatedLeave["id"]);
+                      if (existingIndex != -1) {
+                        // Update existing leave
+                        widget.allPaidLeaves[existingIndex] = updatedLeave;
+                      } else {
+                        // Add new leave
+                        widget.allPaidLeaves.add(updatedLeave);
+                      }
+                      // Optionally, you can update the current detail screen if it's the same leave
+                      if (existingIndex == widget.allPaidLeaves.indexWhere(
+                          (leave) => leave["id"] == widget.paidLeave["id"])) {
+                        widget.paidLeave.addAll(updatedLeave);
+                        _createdAt = widget.paidLeave["createdAt"] ??
+                            widget.paidLeave["datetime"] ??
+                            _createdAt;
+                        _modifiedAt = widget.paidLeave["modifiedAt"] ?? _modifiedAt;
+                      }
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Paid Leave/Cuti Added Successfully!")),
+                    );
+                  }
                 });
               },
               child: const Text("Create Paid Leave/Cuti Form"),
@@ -421,13 +636,15 @@ class _PaidLeaveCutiDetailScreenState extends State<PaidLeaveCutiDetailScreen> {
     );
   }
 
-  /// Widget untuk setiap item status di sidebar
+  /// Widget for each status item in the sidebar
   Widget _buildStatusItem(String status, int count, Color color) {
     return InkWell(
       onTap: () {
         setState(() {
           _selectedStatus = status;
-          _currentPage = 1;
+          // Implement filter functionality if needed
+          // For example, navigate back to the main screen with a filter applied
+          // Since this is the detail screen, this might not be necessary
         });
       },
       child: Padding(
@@ -455,153 +672,5 @@ class _PaidLeaveCutiDetailScreenState extends State<PaidLeaveCutiDetailScreen> {
         ),
       ),
     );
-  }
-
-  /// Membuat kartu untuk setiap pengajuan Paid Leave/Cuti
-  Widget _buildPaidLeaveCard({
-    required String jenisCuti,
-    required String nama,
-    required String fromDate,
-    required String toDate,
-    required String status,
-    required String sap,
-    required String act,
-    required String datetime,
-  }) {
-    // Memilih warna berdasarkan status
-    Color statusColor = Colors.grey;
-    switch (status.toLowerCase()) {
-      case "approved":
-        statusColor = Colors.green;
-        break;
-      case "waiting":
-      case "need approve":
-        statusColor = Colors.orange;
-        break;
-      case "rejected":
-        statusColor = Colors.red;
-        break;
-      case "draft":
-        statusColor = Colors.blueGrey;
-        break;
-      case "returned":
-        statusColor = Colors.blue;
-        break;
-      default:
-        statusColor = Colors.grey;
-    }
-
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6.0),
-      elevation: 2,
-      child: InkWell(
-        onTap: () {
-          final leaveData = {
-            "jenisCuti": jenisCuti,
-            "nama": nama,
-            "fromDate": fromDate,
-            "toDate": toDate,
-            "status": status,
-            "sap": sap,
-            "act": act,
-            "datetime": datetime,
-          };
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PaidLeaveCutiDetailScreen(
-                paidLeave: leaveData,
-                allPaidLeaves: widget.allPaidLeaves,
-              ),
-            ),
-          ).then((_) {
-            setState(() {});
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Jenis Cuti dan Nama
-              Text(
-                "$jenisCuti oleh $nama",
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              // Rentang Tanggal dan Status
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Rentang Tanggal
-                  Expanded(
-                    child: Row(
-                      children: [
-                        const Icon(Icons.date_range,
-                            size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            "From ${_formatDate(fromDate)} To ${_formatDate(toDate)}",
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.grey),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Status
-                  Container(
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // SAP dan Act
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  if (sap.isNotEmpty)
-                    Chip(
-                      label: Text("SAP: $sap"),
-                      backgroundColor: Colors.blue.shade100,
-                    ),
-                  if (act.isNotEmpty)
-                    Chip(
-                      label: Text("Act: $act"),
-                      backgroundColor: Colors.orange.shade100,
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Helper method untuk memformat tanggal dari "YYYY-MM-DD" ke "dd-MM-yyyy"
-  String _formatDate(String date) {
-    try {
-      DateTime parsedDate = DateTime.parse(date);
-      return DateFormat('dd-MM-yyyy').format(parsedDate);
-    } catch (e) {
-      return date;
-    }
   }
 }

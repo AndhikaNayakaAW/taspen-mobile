@@ -117,7 +117,7 @@ class CustomBottomAppBar extends StatelessWidget {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    "Paid Leave",
+                    "Paid Leave (CUTI)",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
