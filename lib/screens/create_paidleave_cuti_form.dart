@@ -130,13 +130,14 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
     if (widget.existingLeave != null && widget.leaveIndex != null) {
       // Editing existing leave
       final leave = widget.existingLeave!;
-      _selectedLeaveType = _normalizeJenisCuti(leave["jenisCuti"] ?? "Cuti Tahunan");
+      _selectedLeaveType =
+          _normalizeJenisCuti(leave["jenisCuti"] ?? "Cuti Tahunan");
       _selectedFromDate =
-          (leave["fromDate"] != null && leave["fromDate"] != "")
+          (leave["fromDate"] != null && leave["fromDate"].toString().isNotEmpty)
               ? _parseDate(leave["fromDate"])
               : null;
       _selectedToDate =
-          (leave["toDate"] != null && leave["toDate"] != "")
+          (leave["toDate"] != null && leave["toDate"].toString().isNotEmpty)
               ? _parseDate(leave["toDate"])
               : null;
       _deskripsiCommon = leave["deskripsi"] ?? "";
@@ -148,7 +149,7 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
       _alamatIzinIbadah = leave["alamatIzinIbadah"] ?? "";
       _deskripsiIzinIbadah = leave["deskripsiIzinIbadah"] ?? "";
       _buktiIzinSakit = (leave["buktiIzinSakit"] != null &&
-              leave["buktiIzinSakit"] != "")
+              leave["buktiIzinSakit"].toString().isNotEmpty)
           ? PlatformFile(
               name: leave["buktiIzinSakit"],
               size: 0,
@@ -156,7 +157,7 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
             )
           : null;
       _buktiIzinIbadah = (leave["buktiIzinIbadah"] != null &&
-              leave["buktiIzinIbadah"] != "")
+              leave["buktiIzinIbadah"].toString().isNotEmpty)
           ? PlatformFile(
               name: leave["buktiIzinIbadah"],
               size: 0,
@@ -319,7 +320,9 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
         );
       }
 
-      Navigator.pop(context, leaveData); // Navigate back with leaveData
+      // **Modified Navigation: Pop twice to return to main screen**
+      Navigator.pop(context); // Pop form screen
+      Navigator.pop(context, leaveData); // Pop previous screen (e.g., detail screen) and pass data
     }
   }
 
@@ -347,7 +350,9 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
         );
       }
 
-      Navigator.pop(context, leaveData); // Navigate back with leaveData
+      // **Modified Navigation: Pop twice to return to main screen**
+      Navigator.pop(context); // Pop form screen
+      Navigator.pop(context, leaveData); // Pop previous screen (e.g., detail screen) and pass data
     }
   }
 
@@ -383,7 +388,8 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
       "deskripsiIzinIbadah": _deskripsiIzinIbadah,
       // Submission datetime
       "datetime": widget.existingLeave != null
-          ? widget.existingLeave!["datetime"] ?? DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())
+          ? widget.existingLeave!["datetime"] ??
+              DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())
           : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
     };
   }
@@ -444,7 +450,8 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
         if (_calculateNewCutiDays() > _maxCutiAlasan) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text("Maximum 12 days for Cuti Alasan Penting.")),
+                content:
+                    Text("Maximum 12 days for Cuti Alasan Penting.")),
           );
           return false;
         }
@@ -527,8 +534,10 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
       if (leave["jenisCuti"] == "Cuti Tahunan" &&
           (leave["status"].toString().toLowerCase() == "approved" ||
               leave["status"].toString().toLowerCase() == "waiting")) {
-        if (leave["fromDate"] != null && leave["fromDate"] != "" &&
-            leave["toDate"] != null && leave["toDate"] != "") {
+        if (leave["fromDate"] != null &&
+            leave["fromDate"].toString().isNotEmpty &&
+            leave["toDate"] != null &&
+            leave["toDate"].toString().isNotEmpty) {
           try {
             DateTime from = _parseDate(leave["fromDate"]);
             DateTime to = _parseDate(leave["toDate"]);
@@ -1123,7 +1132,8 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
                   _selectedApproverIds.add(value);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Maximum 3 approvers allowed.")),
+                    const SnackBar(
+                        content: Text("Maximum 3 approvers allowed.")),
                   );
                 }
               }
@@ -1139,7 +1149,8 @@ class _CreatePaidLeaveCutiFormState extends State<CreatePaidLeaveCutiForm> {
         Wrap(
           spacing: 8.0,
           children: _selectedApproverIds.map((id) {
-            final approver = _approverList.firstWhere((item) => item["id"] == id);
+            final approver =
+                _approverList.firstWhere((item) => item["id"] == id);
             return Chip(
               label: Text(approver["name"]!),
               deleteIcon: const Icon(Icons.close),
