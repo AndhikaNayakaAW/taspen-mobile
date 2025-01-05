@@ -1,10 +1,14 @@
-// lib/screens/login_screen.dart
-import 'dart:ui'; // Required for ImageFilter
+import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:mobileapp/dto/login_response.dart';
+import 'package:mobileapp/services/api_service_easy_taspen.dart';
 import 'main_screen.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // For secure storage
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -13,12 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Secure Storage instance
   final _storage = const FlutterSecureStorage();
-
-  // Dummy credentials
-  final String correctUsername = "andhika.nayaka";
-  final String correctPassword = "Tspti1234";
+  final ApiService _apiService = ApiService();
 
   String? errorMessage;
   bool _isPasswordVisible = false;
@@ -28,7 +28,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Load saved credentials if Remember Me was checked
     _loadSavedCredentials();
   }
 
@@ -39,52 +38,73 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void login() async {
+  Future<void> login() async {
     String username = _usernameController.text.trim();
     String password = _passwordController.text.trim();
 
-    // Basic form validation
     if (username.isEmpty || password.isEmpty) {
-      setState(() {
-        errorMessage = "Please enter both username and password";
-      });
+      _showError("Please enter both username and password");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
       return;
     }
 
-    print("Attempting login with Username: $username, Password: $password");
-
     setState(() {
       isLoading = true;
+      errorMessage = null;
     });
 
-    // Simulate a network call
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      LoginResponse loginResponse = await _apiService.login(username, password);
 
-    setState(() {
-      if (username == correctUsername && password == correctPassword) {
-        errorMessage = null;
+      if (loginResponse.statusLogin == 1) {
+        await _storage.write(key: '_token', value: loginResponse.token);
+
+        await _storage.write(
+            key: 'user', value: jsonEncode(loginResponse.user.toJson()));
+
         if (_isRememberMe) {
-          _storage.write(key: 'username', value: username);
-          _storage.write(key: 'password', value: password);
+          await _storage.write(key: 'username', value: username);
+          await _storage.write(key: 'password', value: password);
         } else {
-          _storage.delete(key: 'username');
-          _storage.delete(key: 'password');
+          await _storage.delete(key: 'username');
+          await _storage.delete(key: 'password');
         }
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => MainScreen()),
         );
       } else {
-        errorMessage = "Invalid username or password";
+        String apiErrorMessage = loginResponse.text.isNotEmpty
+            ? loginResponse.text
+            : 'Login failed. Please try again.';
+        _showError(apiErrorMessage);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login failed. Try again!')),
+          SnackBar(content: Text(apiErrorMessage)),
         );
       }
-      isLoading = false;
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      _showError(errorMsg);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMsg)),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void _showError(String message) {
+    setState(() {
+      errorMessage = message;
     });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   void _openForgotPasswordDialog() {
@@ -121,33 +141,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate the available width for the button
     double screenWidth = MediaQuery.of(context).size.width;
-    double horizontalPadding = 60.0; // 30 left and 30 right
+    double horizontalPadding = 60.0;
     double availableWidth = screenWidth - horizontalPadding;
     double buttonWidth = isLoading ? 50.0 : availableWidth;
 
     return Scaffold(
-      // Use SafeArea to avoid intrusions by system UI
       body: Stack(
         children: [
-          // Background Image
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/images/logintaspen.jpg'), // Background image
+                image: AssetImage('assets/images/logintaspen.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
           ),
-          // Semi-transparent overlay with blur effect for better readability
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
             child: Container(
               color: Colors.black.withOpacity(0.3),
             ),
           ),
-          // Login Form
           Center(
             child: SingleChildScrollView(
               child: Padding(
@@ -163,10 +178,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Logo
                         Image.asset(
                           'assets/images/easylogo.jpg',
-                          height: 150, // Increased height
+                          height: 150,
                         ),
                         const SizedBox(height: 20),
                         const Text(
@@ -179,7 +193,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 30),
-                        // Username Field with Icon
                         TextField(
                           controller: _usernameController,
                           decoration: InputDecoration(
@@ -195,7 +208,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        // Password Field with Icon and Toggle
                         TextField(
                           controller: _passwordController,
                           obscureText: !_isPasswordVisible,
@@ -224,7 +236,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        // Remember Me and Forgot Password
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -258,7 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        // Error Message
                         if (errorMessage != null)
                           Text(
                             errorMessage!,
@@ -268,7 +278,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         const SizedBox(height: 10),
-                        // Login Button with Animation using SizedBox and AnimatedContainer
                         SizedBox(
                           width: availableWidth,
                           child: AnimatedContainer(
@@ -286,8 +295,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               onPressed: isLoading ? null : login,
                               child: isLoading
                                   ? const CircularProgressIndicator(
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     )
                                   : const Text(
                                       'Login',

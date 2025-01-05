@@ -1,27 +1,29 @@
 // lib/screens/duty_detail_screen.dart
 import 'package:flutter/material.dart';
+import 'package:mobileapp/model/duty.dart';
 import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
-import 'duty_spt_screen.dart';
 import 'create_duty_form.dart'; // We'll use this for "edit" button if Draft or Returned
 import 'main_screen.dart';
 import 'paidleave_cuti_screen.dart';
 import 'package:intl/intl.dart'; // Import intl for date formatting
 
 class DutyDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> duty;
-  final List<Map<String, dynamic>> allDuties;
+  final Duty duty;
+  final List<Duty> allDuties;
 
   const DutyDetailScreen({
-    Key? key,
+    super.key,
     required this.duty,
     required this.allDuties,
-  }) : super(key: key);
+  });
 
   @override
   State<DutyDetailScreen> createState() => _DutyDetailScreenState();
 }
 
 class _DutyDetailScreenState extends State<DutyDetailScreen> {
+  late Duty _currentDuty; // Mutable copy of duty
+
   // Updated to dynamically set the created and modified times
   late String _createdAt;
   late String _modifiedAt;
@@ -38,17 +40,16 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize createdAt and modifiedAt based on existing data or current time
-    _createdAt = widget.duty["createdAt"] != null
-        ? DateFormat('MMM dd yyyy hh:mm a')
-            .format(DateTime.parse(widget.duty["createdAt"]))
-        : DateFormat('MMM dd yyyy hh:mm a').format(DateTime.now());
-    _modifiedAt = widget.duty["modifiedAt"] != null
-        ? DateFormat('MMM dd yyyy hh:mm a')
-            .format(DateTime.parse(widget.duty["modifiedAt"]))
-        : _createdAt;
+    // Initialize _currentDuty with the duty passed to the widget
+    _currentDuty = widget.duty;
 
-    _status = widget.duty["status"]?.toString().toLowerCase() ?? "draft";
+    // Initialize createdAt and modifiedAt based on existing data or current time
+    _createdAt =
+        DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.createdAt);
+    _modifiedAt =
+        DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.updatedAt);
+
+    _status = _currentDuty.status.toLowerCase();
 
     // Determine the status flags
     isDraft = _status == "draft";
@@ -57,73 +58,81 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     isReturned = _status == "returned";
     isRejected = _status == "rejected";
 
-    _rejectionReason = widget.duty["rejectionReason"] ?? "";
+    _rejectionReason = _currentDuty.rejectionReason ?? "";
   }
 
   // ========== ACTION HANDLERS ==========
-  void _onEdit() {
+  void _onEdit() async {
     // Navigate to CreateDutyForm with the duty to edit
-    Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => CreateDutyForm(
           duties: widget.allDuties,
-          dutyToEdit: widget.duty, // Pass the duty to edit
+          dutyToEdit: _currentDuty, // Pass the duty to edit
         ),
       ),
-    ).then((result) {
+    );
+
+    if (result != null) {
       if (result == 'sent' || result == 'updated') {
         // After sending or updating, navigate back to Duty List Screen
-        Navigator.pop(context); // Pop DutyDetailScreen to go back to DutySPTScreen
+        Navigator.pop(
+            context); // Pop DutyDetailScreen to go back to DutySPTScreen
       } else if (result == 'saved') {
         // After saving/updating as draft, refresh the detail screen
         setState(() {
           // Refresh the createdAt and modifiedAt in case they were updated
-          _createdAt = widget.duty["createdAt"] != null
-              ? DateFormat('MMM dd yyyy hh:mm a')
-                  .format(DateTime.parse(widget.duty["createdAt"]))
-              : DateFormat('MMM dd yyyy hh:mm a').format(DateTime.now());
-          _modifiedAt = widget.duty["modifiedAt"] != null
-              ? DateFormat('MMM dd yyyy hh:mm a')
-                  .format(DateTime.parse(widget.duty["modifiedAt"]))
-              : _createdAt;
-          _status = widget.duty["status"]?.toString().toLowerCase() ?? "draft";
+          _createdAt =
+              DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.createdAt);
+          _modifiedAt =
+              DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.updatedAt);
+          _status = _currentDuty.status.toLowerCase();
           isDraft = _status == "draft";
           isWaiting = _status == "waiting";
           isApproved = _status == "approved";
           isReturned = _status == "returned";
           isRejected = _status == "rejected";
-          _rejectionReason = widget.duty["rejectionReason"] ?? "";
+          _rejectionReason = _currentDuty.rejectionReason ?? "";
         });
       }
-    });
+    }
   }
 
   void _onSend() {
     // Update the duty status to "Waiting"
-    setState(() {
-      widget.duty["status"] = "Waiting";
-      widget.duty["modifiedAt"] = DateTime.now().toIso8601String();
-      _modifiedAt = DateFormat('MMM dd yyyy hh:mm a').format(DateTime.now());
+    Duty updatedDuty = _currentDuty.copyWith(
+      status: "Waiting",
+      updatedAt: DateTime.now(),
+      rejectionReason: null, // Clear rejection reason if any
+    );
 
-      // Reset status flags
-      isDraft = false;
-      isWaiting = true;
-      isApproved = false;
-      isReturned = false;
-      isRejected = false;
-
-      // Clear rejection reason if any
-      _rejectionReason = "";
-      widget.duty["rejectionReason"] = "";
-    });
+    // Replace the old duty with the updated one in allDuties
+    int index =
+        widget.allDuties.indexWhere((duty) => duty.id == _currentDuty.id);
+    if (index != -1) {
+      setState(() {
+        widget.allDuties[index] = updatedDuty;
+        _currentDuty = updatedDuty; // Update the mutable duty reference
+        // Update state variables
+        _modifiedAt =
+            DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.updatedAt);
+        _status = _currentDuty.status.toLowerCase();
+        isDraft = _status == "draft";
+        isWaiting = _status == "waiting";
+        isApproved = _status == "approved";
+        isReturned = _status == "returned";
+        isRejected = _status == "rejected";
+        _rejectionReason = _currentDuty.rejectionReason ?? "";
+      });
+    }
 
     // Show confirmation SnackBar
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Duty Sent! Status=Waiting")),
     );
 
-    // Navigate back to duty_spt_screen.dart
+    // Navigate back to DutySPTScreen
     Navigator.pop(context);
   }
 
@@ -146,7 +155,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
               onPressed: () {
                 // Perform deletion
                 setState(() {
-                  widget.allDuties.remove(widget.duty);
+                  widget.allDuties
+                      .removeWhere((duty) => duty.id == _currentDuty.id);
                 });
                 Navigator.of(context).pop(); // Dismiss dialog
                 Navigator.pop(context); // Navigate back to DutySPTScreen
@@ -166,7 +176,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
   }
 
   void _onPrint() {
-    final status = (widget.duty["status"] ?? "").toString();
+    final status = _currentDuty.status;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Print Duty (status = $status) - dummy!")),
     );
@@ -196,46 +206,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CreateDutyForm(
-                                duties: widget.allDuties,
-                              ),
-                            ),
-                          ).then((result) {
-                            if (result == 'sent' || result == 'updated') {
-                              Navigator.pop(context); // Pop DutyDetailScreen
-                            } else if (result == 'saved') {
-                              setState(() {
-                                // Refresh the state if needed
-                                _createdAt = widget.duty["createdAt"] != null
-                                    ? DateFormat('MMM dd yyyy hh:mm a').format(
-                                        DateTime.parse(
-                                            widget.duty["createdAt"]))
-                                    : DateFormat('MMM dd yyyy hh:mm a')
-                                        .format(DateTime.now());
-                                _modifiedAt = widget.duty["modifiedAt"] != null
-                                    ? DateFormat('MMM dd yyyy hh:mm a').format(
-                                        DateTime.parse(
-                                            widget.duty["modifiedAt"]))
-                                    : _createdAt;
-                                _status =
-                                    widget.duty["status"]?.toString().toLowerCase() ??
-                                        "draft";
-                                isDraft = _status == "draft";
-                                isWaiting = _status == "waiting";
-                                isApproved = _status == "approved";
-                                isReturned = _status == "returned";
-                                isRejected = _status == "rejected";
-                                _rejectionReason =
-                                    widget.duty["rejectionReason"] ?? "";
-                              });
-                            }
-                          });
-                        },
-                        child: const Text("Create Duty Form"),
+                        onPressed: _onEdit,
+                        child: const Text("Edit Duty Form"),
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton(
@@ -293,24 +265,22 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
   }
 
   Widget _buildDetailContent({bool isMobile = false}) {
-    final duty = widget.duty;
-    final description = duty["description"] ?? "No Title";
-    final status = duty["status"] ?? "Draft";
-    final dateStr = duty["date"] ?? "";
-    final startTimeStr = duty["startTime"] ?? "";
-    final endTimeStr = duty["endTime"] ?? "";
+    final duty = _currentDuty;
+    final description = duty.description ?? "No Title";
+    final status = duty.status;
+    final dateStr = duty.dutyDate.toIso8601String();
+    final startTimeStr = duty.startTime;
+    final endTimeStr = duty.endTime;
 
-    // If createdBy or user info is not set, let's default to "andhika.nayaka"
-    final createdBy = duty["createdBy"] ?? "andhika.nayaka";
-    final approverName = _getApproverName(duty["approverId"]); // Fetch dynamically based on approverId
+    // If createdBy or user info is not set, let's default to "Unknown"
+    final createdBy = duty.createdBy;
+    final approverName = _getApproverName(
+        duty.approverId); // Fetch dynamically based on approverId
 
-    // We'll parse "Waiting" or "Approved" or "Draft" ...
-    final displayedDate =
-        dateStr.isEmpty ? "20 December 2024" : _formatDate(dateStr);
-    final displayedStart =
-        startTimeStr.isEmpty ? "09:31 AM" : _formatTime(startTimeStr);
-    final displayedEnd =
-        endTimeStr.isEmpty ? "04:30 PM" : _formatTime(endTimeStr);
+    // We'll parse status and format dates
+    final displayedDate = _formatDate(duty.dutyDate.toIso8601String());
+    final displayedStart = _formatTime(duty.startTime);
+    final displayedEnd = _formatTime(duty.endTime);
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -396,8 +366,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                 const Divider(),
 
                 // Created By
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(Icons.person),
                     SizedBox(width: 4),
                     Text(
@@ -408,13 +378,13 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text("Nama : $createdBy"),
-                Text("NIK : 4163 (dummy)"),
-                Text("Jabatan : APPLICATION SUPPORT STAFF"),
+                const Text("NIK : 4163 (dummy)"),
+                const Text("Jabatan : APPLICATION SUPPORT STAFF"),
                 const Divider(),
 
                 // Approver
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(Icons.approval),
                     SizedBox(width: 4),
                     Text(
@@ -425,8 +395,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text("Nama : $approverName"),
-                Text("NIK : 3713"),
-                Text("Jabatan : SENIOR PROGRAMMER"),
+                const Text("NIK : 3713"),
+                const Text("Jabatan : SENIOR PROGRAMMER"),
 
                 const SizedBox(height: 20),
                 _buildActionButtons(status),
@@ -463,9 +433,12 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
   Widget _buildActionButtons(String status) {
     // Define colors based on status
     Color statusColor = Colors.grey;
-    if (status.toLowerCase() == "approved") statusColor = Colors.green;
-    else if (status.toLowerCase() == "waiting") statusColor = Colors.orange;
-    else if (status.toLowerCase() == "returned") statusColor = Colors.blue;
+    if (status.toLowerCase() == "approved")
+      statusColor = Colors.green;
+    else if (status.toLowerCase() == "waiting")
+      statusColor = Colors.orange;
+    else if (status.toLowerCase() == "returned")
+      statusColor = Colors.blue;
     else if (status.toLowerCase() == "rejected") statusColor = Colors.red;
 
     // If it's a DRAFT -> We can Edit, Send, or Delete
@@ -592,13 +565,13 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
   }
 
   /// Capitalize the first letter of the status
-  String capitalize(String s) => s.isNotEmpty
-      ? s[0].toUpperCase() + s.substring(1).toLowerCase()
-      : s;
+  String capitalize(String s) =>
+      s.isNotEmpty ? s[0].toUpperCase() + s.substring(1).toLowerCase() : s;
 
   /// Helper method to format time from "HH:mm:ss" to "hh:mm a"
   String _formatTime(String time) {
     try {
+      // Assuming time is in "HH:mm:ss" format
       DateTime parsedTime = DateTime.parse("1970-01-01T$time");
       return DateFormat('hh:mm a').format(parsedTime);
     } catch (e) {
@@ -606,7 +579,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     }
   }
 
-  /// Helper method to format date from "YYYY-MM-DD" to "dd-MM-yyyy"
+  /// Helper method to format date from ISO string to "dd-MM-yyyy"
   String _formatDate(String date) {
     try {
       DateTime parsedDate = DateTime.parse(date);

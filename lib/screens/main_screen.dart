@@ -1,12 +1,14 @@
-// lib/screens/main_screen.dart
-import 'dart:async'; // Import for Timer
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../widgets/custom_bottom_app_bar.dart'; // Ensure this is imported
-import 'package:intl/intl.dart'; // Import intl for date formatting
-import 'login_screen.dart'; // Import LoginScreen
+import '../widgets/custom_bottom_app_bar.dart';
+import 'package:intl/intl.dart';
+import 'login_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../model/user.dart';
+import 'dart:convert';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -16,11 +18,16 @@ class _MainScreenState extends State<MainScreen> {
   late String _currentTime;
   late Timer _timer;
 
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  User? _user;
+
   @override
   void initState() {
     super.initState();
     _currentTime = _formatTime(DateTime.now());
-    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) => _updateTime());
+    _timer =
+        Timer.periodic(const Duration(seconds: 1), (Timer t) => _updateTime());
+    _loadUserInfo();
   }
 
   @override
@@ -29,20 +36,42 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  /// Updates the current time every second
   void _updateTime() {
     setState(() {
       _currentTime = _formatTime(DateTime.now());
     });
   }
 
-  /// Formats DateTime to 'hh:mm:ss a' format
   String _formatTime(DateTime dateTime) {
     return DateFormat('hh:mm:ss a').format(dateTime);
   }
 
-  /// Helper method to build the user's information section
+  Future<void> _loadUserInfo() async {
+    try {
+      String? userJson = await _storage.read(key: 'user');
+      if (userJson != null) {
+        setState(() {
+          _user = User.fromJson(jsonDecode(userJson));
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user info: $e');
+    }
+  }
+
   Widget _buildUserInfo() {
+    if (_user == null) {
+      return Container(
+        color: Colors.teal[700],
+        padding: const EdgeInsets.all(16.0),
+        child: const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+      );
+    }
+
     return Container(
       color: Colors.teal[700],
       padding: const EdgeInsets.all(16.0),
@@ -51,7 +80,7 @@ class _MainScreenState extends State<MainScreen> {
           const CircleAvatar(
             radius: 30,
             backgroundColor: Colors.white,
-            child: Icon(
+            child: const Icon(
               Icons.person,
               size: 40,
               color: Colors.teal,
@@ -60,25 +89,25 @@ class _MainScreenState extends State<MainScreen> {
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
-                'Andhika Nayaka',
-                style: TextStyle(
+                _user!.nama,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white, // Improved readability on teal background
+                  color: Colors.white,
                 ),
               ),
               Text(
-                'Application Staff',
-                style: TextStyle(
+                _user!.jabatan,
+                style: const TextStyle(
                   fontSize: 16,
                   color: Colors.white,
                 ),
               ),
               Text(
-                'Divisi Teknologi Informasi',
-                style: TextStyle(
+                _user!.unitKerja,
+                style: const TextStyle(
                   fontSize: 16,
                   color: Colors.white,
                 ),
@@ -90,7 +119,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  /// Helper method to build today's date and live clock display
   Widget _buildDateTimeDisplay(bool isLargeScreen) {
     String today = DateFormat('EEEE, dd MMMM yyyy').format(DateTime.now());
 
@@ -114,7 +142,6 @@ class _MainScreenState extends State<MainScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Date Section
               Column(
                 children: [
                   const Icon(
@@ -135,7 +162,6 @@ class _MainScreenState extends State<MainScreen> {
                 ],
               ),
               const SizedBox(height: 30),
-              // Time Section
               Column(
                 children: [
                   const Icon(
@@ -162,7 +188,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  /// Helper method to build the logout button
   Widget _buildLogoutButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -174,29 +199,27 @@ class _MainScreenState extends State<MainScreen> {
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         ),
         onPressed: () {
-          // Show logout confirmation dialog
           _showLogoutConfirmation(context);
         },
       ),
     );
   }
 
-  /// Helper method to build the footer
   Widget _buildFooter() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: const Text(
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 16.0),
+      child: Text(
         'Powered by: PT TASPEN (Persero)',
         style: TextStyle(fontSize: 14, color: Colors.grey),
       ),
     );
   }
 
-  /// Helper method to show logout confirmation dialog
   void _showLogoutConfirmation(BuildContext context) {
     showDialog(
       context: context,
@@ -208,7 +231,7 @@ class _MainScreenState extends State<MainScreen> {
             TextButton(
               child: const Text('Cancel'),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
             ),
             TextButton(
@@ -217,10 +240,10 @@ class _MainScreenState extends State<MainScreen> {
                 style: TextStyle(color: Colors.red),
               ),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                // Navigate to LoginScreen and remove all previous routes
+                Navigator.of(context).pop();
+
                 Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
                   (Route<dynamic> route) => false,
                 );
               },
@@ -231,7 +254,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  /// Helper method to build decorative background
   Widget _buildDecorativeBackground() {
     return Positioned(
       top: -50,
@@ -253,7 +275,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  /// Helper method to build another decorative element
   Widget _buildAnotherDecorativeElement() {
     return Positioned(
       bottom: -50,
@@ -277,11 +298,10 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Use LayoutBuilder to determine screen size and adapt UI accordingly
     return Scaffold(
-      extendBodyBehindAppBar: true, // Allow decorative background to show behind AppBar
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent, // Make AppBar transparent
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         title: const Text(
@@ -291,27 +311,21 @@ class _MainScreenState extends State<MainScreen> {
       ),
       body: Stack(
         children: [
-          // Decorative Background Elements
           _buildDecorativeBackground(),
           _buildAnotherDecorativeElement(),
-          // Main Content
           LayoutBuilder(
             builder: (context, constraints) {
               bool isLargeScreen = constraints.maxWidth > 600;
               return SingleChildScrollView(
                 child: Column(
                   children: [
-                    const SizedBox(height: kToolbarHeight + 40), // Spacer for AppBar and decorative elements
-                    // User Information Section
+                    const SizedBox(height: kToolbarHeight + 40),
                     _buildUserInfo(),
                     const SizedBox(height: 30),
-                    // Today's Date and Live Clock Display
                     _buildDateTimeDisplay(isLargeScreen),
                     const SizedBox(height: 30),
-                    // Logout Button
                     _buildLogoutButton(context),
                     const SizedBox(height: 30),
-                    // Footer
                     _buildFooter(),
                   ],
                 ),
@@ -320,32 +334,25 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      // Add the CustomBottomAppBar only for mobile screens
       bottomNavigationBar: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth <= 600) {
-            // Mobile Screen: Show Bottom App Bar
             return const CustomBottomAppBar();
           } else {
-            // Large Screen: No Bottom App Bar
-            return SizedBox.shrink();
+            return const SizedBox.shrink();
           }
         },
       ),
-      backgroundColor: Colors.teal[50], // Base background color
+      backgroundColor: Colors.teal[50],
     );
   }
 }
-
-/// Placeholder Screens for Navigation
-/// You can remove these if they're no longer needed
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Implement your Profile Screen
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
       body: const Center(child: Text('Profile Screen')),
@@ -358,7 +365,6 @@ class AttendanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Implement your Attendance Screen
     return Scaffold(
       appBar: AppBar(title: const Text('Presensi')),
       body: const Center(child: Text('Attendance Screen')),
@@ -371,7 +377,6 @@ class SalarySlipScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Implement your Salary Slip Screen
     return Scaffold(
       appBar: AppBar(title: const Text('Slip Gaji')),
       body: const Center(child: Text('Salary Slip Screen')),
