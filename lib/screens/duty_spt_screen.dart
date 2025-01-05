@@ -6,6 +6,7 @@ import 'duty_detail_screen.dart';
 import 'package:intl/intl.dart';
 import 'main_screen.dart';
 import 'paidleave_cuti_screen.dart';
+import 'package:mobileapp/dummies/duty_list.dart';
 
 class DutySPTScreen extends StatefulWidget {
   const DutySPTScreen({Key? key}) : super(key: key);
@@ -15,9 +16,7 @@ class DutySPTScreen extends StatefulWidget {
 }
 
 class _DutySPTScreenState extends State<DutySPTScreen> {
-  // Dummy Data (22 items) with unique IDs
-  Duty[] 
-  
+
   List<Map<String, dynamic>> filteredDuties = [];
   String sortColumn = "date";
   bool ascending = true;
@@ -52,15 +51,18 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
         bool matchesStartDate = filterStartDate == null
             ? true
-            : DateTime.parse(duty["date"]).isAfter(
-                filterStartDate!.subtract(const Duration(days: 1)));
+            : DateTime.parse(duty["date"])
+                .isAfter(filterStartDate!.subtract(const Duration(days: 1)));
 
         bool matchesEndDate = filterEndDate == null
             ? true
-            : DateTime.parse(duty["date"]).isBefore(
-                filterEndDate!.add(const Duration(days: 1)));
+            : DateTime.parse(duty["date"])
+                .isBefore(filterEndDate!.add(const Duration(days: 1)));
 
-        return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate;
+        return matchesSearch &&
+            matchesStatus &&
+            matchesStartDate &&
+            matchesEndDate;
       }).toList();
 
       currentPage = 1; // Reset to first page on filter
@@ -110,13 +112,15 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
         if (isStart) {
           filterStartDate = picked;
           // Ensure start date is before end date
-          if (filterEndDate != null && filterStartDate!.isAfter(filterEndDate!)) {
+          if (filterEndDate != null &&
+              filterStartDate!.isAfter(filterEndDate!)) {
             filterEndDate = null;
           }
         } else {
           filterEndDate = picked;
           // Ensure end date is after start date
-          if (filterStartDate != null && filterEndDate!.isBefore(filterStartDate!)) {
+          if (filterStartDate != null &&
+              filterEndDate!.isBefore(filterStartDate!)) {
             filterStartDate = null;
           }
         }
@@ -184,7 +188,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => CreateDutyForm(duties: duties),
+                                builder: (context) =>
+                                    CreateDutyForm(duties: duties),
                               ),
                             );
                             setState(() {
@@ -200,7 +205,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                               fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         const SizedBox(height: 10),
-                        _buildStatusItem("All", filteredDuties.length, Colors.teal),
+                        _buildStatusItem(
+                            "All", filteredDuties.length, Colors.teal),
                         const Divider(),
                         const Text(
                           "AS A CONCEPTOR / MAKER",
@@ -210,25 +216,35 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                         const SizedBox(height: 10),
                         _buildStatusItem(
                             "Draft",
-                            duties.where((duty) => duty["status"] == "Draft").length,
+                            duties
+                                .where((duty) => duty["status"] == "Draft")
+                                .length,
                             Colors.grey),
                         _buildStatusItem(
                           "Waiting",
-                          duties.where((duty) => duty["status"] == "Waiting").length,
+                          duties
+                              .where((duty) => duty["status"] == "Waiting")
+                              .length,
                           Colors.orange,
                         ),
                         _buildStatusItem(
                             "Returned",
-                            duties.where((duty) => duty["status"] == "Returned").length,
+                            duties
+                                .where((duty) => duty["status"] == "Returned")
+                                .length,
                             Colors.blue),
                         _buildStatusItem(
                           "Approved",
-                          duties.where((duty) => duty["status"] == "Approved").length,
+                          duties
+                              .where((duty) => duty["status"] == "Approved")
+                              .length,
                           Colors.green,
                         ),
                         _buildStatusItem(
                             "Rejected",
-                            duties.where((duty) => duty["status"] == "Rejected").length,
+                            duties
+                                .where((duty) => duty["status"] == "Rejected")
+                                .length,
                             Colors.red),
                         const Divider(),
                         const Text(
@@ -239,19 +255,28 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                         const SizedBox(height: 10),
                         _buildStatusItem(
                             "Need Approve",
-                            duties.where((duty) => duty["status"] == "Need Approve").length,
+                            duties
+                                .where(
+                                    (duty) => duty["status"] == "Need Approve")
+                                .length,
                             Colors.orange),
                         _buildStatusItem(
                             "Return",
-                            duties.where((duty) => duty["status"] == "Return").length,
+                            duties
+                                .where((duty) => duty["status"] == "Return")
+                                .length,
                             Colors.blue),
                         _buildStatusItem(
                             "Approve",
-                            duties.where((duty) => duty["status"] == "Approve").length,
+                            duties
+                                .where((duty) => duty["status"] == "Approve")
+                                .length,
                             Colors.green),
                         _buildStatusItem(
                             "Reject",
-                            duties.where((duty) => duty["status"] == "Reject").length,
+                            duties
+                                .where((duty) => duty["status"] == "Reject")
+                                .length,
                             Colors.red),
                       ],
                     ),
@@ -468,7 +493,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                             child: Container(
                               // Make the table width responsive
                               constraints: const BoxConstraints(
-                                minWidth: 600, // Minimum width to prevent collapsing
+                                minWidth:
+                                    600, // Minimum width to prevent collapsing
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,8 +502,10 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                   // Headers
                                   Row(
                                     children: [
-                                      _buildSortableColumn("Keterangan", "description"),
-                                      _buildSortableColumn("Tanggal Tugas", "date"),
+                                      _buildSortableColumn(
+                                          "Keterangan", "description"),
+                                      _buildSortableColumn(
+                                          "Tanggal Tugas", "date"),
                                       _buildSortableColumn("Status", "status"),
                                       // Removed "Jam Mulai" and "Jam Selesai" headers
                                     ],
@@ -488,7 +516,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                   // Rows
                                   ListView.builder(
                                     shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
                                     itemCount: visibleDuties.length,
                                     itemBuilder: (context, index) {
                                       final duty = visibleDuties[index];
@@ -498,7 +527,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                         status: duty["status"],
                                         startTime: duty["startTime"],
                                         endTime: duty["endTime"],
-                                        rejectionReason: duty["rejectionReason"] ?? "",
+                                        rejectionReason:
+                                            duty["rejectionReason"] ?? "",
                                       );
                                     },
                                   ),
@@ -575,7 +605,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => CreateDutyForm(duties: duties),
+                            builder: (context) =>
+                                CreateDutyForm(duties: duties),
                           ),
                         );
                         setState(() {
@@ -599,25 +630,35 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                     const SizedBox(height: 10),
                     _buildStatusItem(
                         "Draft",
-                        duties.where((duty) => duty["status"] == "Draft").length,
+                        duties
+                            .where((duty) => duty["status"] == "Draft")
+                            .length,
                         Colors.grey),
                     _buildStatusItem(
                       "Waiting",
-                      duties.where((duty) => duty["status"] == "Waiting").length,
+                      duties
+                          .where((duty) => duty["status"] == "Waiting")
+                          .length,
                       Colors.orange,
                     ),
                     _buildStatusItem(
                         "Returned",
-                        duties.where((duty) => duty["status"] == "Returned").length,
+                        duties
+                            .where((duty) => duty["status"] == "Returned")
+                            .length,
                         Colors.blue),
                     _buildStatusItem(
                       "Approved",
-                      duties.where((duty) => duty["status"] == "Approved").length,
+                      duties
+                          .where((duty) => duty["status"] == "Approved")
+                          .length,
                       Colors.green,
                     ),
                     _buildStatusItem(
                         "Rejected",
-                        duties.where((duty) => duty["status"] == "Rejected").length,
+                        duties
+                            .where((duty) => duty["status"] == "Rejected")
+                            .length,
                         Colors.red),
                     const Divider(),
                     const Text(
@@ -628,27 +669,35 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                     const SizedBox(height: 10),
                     _buildStatusItem(
                         "Need Approve",
-                        duties.where((duty) => duty["status"] == "Need Approve").length,
+                        duties
+                            .where((duty) => duty["status"] == "Need Approve")
+                            .length,
                         Colors.orange),
                     _buildStatusItem(
                         "Return",
-                        duties.where((duty) => duty["status"] == "Return").length,
+                        duties
+                            .where((duty) => duty["status"] == "Return")
+                            .length,
                         Colors.blue),
                     _buildStatusItem(
                         "Approve",
-                        duties.where((duty) => duty["status"] == "Approve").length,
+                        duties
+                            .where((duty) => duty["status"] == "Approve")
+                            .length,
                         Colors.green),
                     _buildStatusItem(
                         "Reject",
-                        duties.where((duty) => duty["status"] == "Reject").length,
+                        duties
+                            .where((duty) => duty["status"] == "Reject")
+                            .length,
                         Colors.red),
                     const SizedBox(height: 20),
 
                     // Title
                     const Text(
                       "All Duty in 2024",
-                      style: TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 20),
 
@@ -966,9 +1015,12 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   }) {
     // Choose color
     Color statusColor = Colors.grey;
-    if (status == "Approved") statusColor = Colors.green;
-    else if (status == "Waiting") statusColor = Colors.orange;
-    else if (status == "Returned") statusColor = Colors.blue;
+    if (status == "Approved")
+      statusColor = Colors.green;
+    else if (status == "Waiting")
+      statusColor = Colors.orange;
+    else if (status == "Returned")
+      statusColor = Colors.blue;
     else if (status == "Rejected") statusColor = Colors.red;
 
     // Find the duty with the given details to get its unique ID
@@ -1044,8 +1096,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(5),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 child: Text(
                   status,
                   style: TextStyle(
@@ -1071,8 +1122,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
           children: [
             Text(
               title,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: 4),
             Icon(
@@ -1118,9 +1168,12 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   }) {
     // Choose color
     Color statusColor = Colors.grey;
-    if (status == "Approved") statusColor = Colors.green;
-    else if (status == "Waiting") statusColor = Colors.orange;
-    else if (status == "Returned") statusColor = Colors.blue;
+    if (status == "Approved")
+      statusColor = Colors.green;
+    else if (status == "Waiting")
+      statusColor = Colors.orange;
+    else if (status == "Returned")
+      statusColor = Colors.blue;
     else if (status == "Rejected") statusColor = Colors.red;
 
     // Find the duty with the given details to get its unique ID
@@ -1160,8 +1213,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
               // Description
               Text(
                 description,
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
               // Time Range
@@ -1182,7 +1235,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                       const SizedBox(width: 4),
                       Text(
                         _formatDate(date),
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        style:
+                            const TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -1214,8 +1268,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                         fontSize: 14,
                         color: Colors.red,
                         fontStyle: FontStyle.italic),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
