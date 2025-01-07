@@ -22,7 +22,7 @@ class DutyDetailScreen extends StatefulWidget {
 }
 
 class _DutyDetailScreenState extends State<DutyDetailScreen> {
-  late Duty _currentDuty; // Mutable copy of duty
+  late Duty _currentDuty; // Mutable copy of a duty
 
   // Updated to dynamically set the created and modified times
   late String _createdAt;
@@ -45,9 +45,9 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
 
     // Initialize createdAt and modifiedAt based on existing data or current time
     _createdAt =
-        DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.createdAt);
+        DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.createdAt);
     _modifiedAt =
-        DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.updatedAt);
+        DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.updatedAt);
 
     _status = _currentDuty.status.toLowerCase();
 
@@ -77,16 +77,15 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     if (result != null) {
       if (result == 'sent' || result == 'updated') {
         // After sending or updating, navigate back to Duty List Screen
-        Navigator.pop(
-            context); // Pop DutyDetailScreen to go back to DutySPTScreen
+        Navigator.pop(context); // Pop DutyDetailScreen to go back to DutySPTScreen
       } else if (result == 'saved') {
         // After saving/updating as draft, refresh the detail screen
         setState(() {
           // Refresh the createdAt and modifiedAt in case they were updated
           _createdAt =
-              DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.createdAt);
+              DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.createdAt);
           _modifiedAt =
-              DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.updatedAt);
+              DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.updatedAt);
           _status = _currentDuty.status.toLowerCase();
           isDraft = _status == "draft";
           isWaiting = _status == "waiting";
@@ -116,7 +115,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
         _currentDuty = updatedDuty; // Update the mutable duty reference
         // Update state variables
         _modifiedAt =
-            DateFormat('MMM dd yyyy hh:mm a').format(_currentDuty.updatedAt);
+            DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.updatedAt);
         _status = _currentDuty.status.toLowerCase();
         isDraft = _status == "draft";
         isWaiting = _status == "waiting";
@@ -187,32 +186,40 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Request Duty Detail"),
+        title: const Text("Duty Detail"),
         backgroundColor: Colors.teal,
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth > 600) {
+          if (constraints.maxWidth > 800) {
             // Desktop with left sidebar
             return Row(
               children: [
                 Container(
                   width: 250,
-                  color: const Color(0xFFf8f9fa),
-                  padding: const EdgeInsets.all(16),
+                  color: Colors.teal.shade50,
+                  padding: const EdgeInsets.all(24),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      ElevatedButton(
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.edit),
+                        label: const Text("Edit Duty Form"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontSize: 16),
                         ),
                         onPressed: _onEdit,
-                        child: const Text("Edit Duty Form"),
                       ),
                       const SizedBox(height: 20),
-                      ElevatedButton(
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.home),
+                        label: const Text("Home"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontSize: 16),
                         ),
                         onPressed: () {
                           // Navigate to Home Screen
@@ -224,12 +231,15 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                             (Route<dynamic> route) => false,
                           );
                         },
-                        child: const Text("Home"),
                       ),
                       const SizedBox(height: 20),
-                      ElevatedButton(
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.airline_seat_flat),
+                        label: const Text("Paid Leave (Cuti)"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontSize: 16),
                         ),
                         onPressed: () {
                           // Navigate to Paid Leave (Cuti) Screen
@@ -240,13 +250,13 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                             ),
                           );
                         },
-                        child: const Text("Paid Leave (Cuti)"),
                       ),
                     ],
                   ),
                 ),
                 Expanded(
                   child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(32),
                     child: _buildDetailContent(),
                   ),
                 ),
@@ -255,6 +265,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
           } else {
             // Mobile
             return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
               child: _buildDetailContent(isMobile: true),
             );
           }
@@ -266,7 +277,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
 
   Widget _buildDetailContent({bool isMobile = false}) {
     final duty = _currentDuty;
-    final description = duty.description ?? "No Title";
+    final description = duty.description ?? "No Description";
     final status = duty.status;
     final dateStr = duty.dutyDate.toIso8601String();
     final startTimeStr = duty.startTime;
@@ -274,60 +285,87 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
 
     // If createdBy or user info is not set, let's default to "Unknown"
     final createdBy = duty.createdBy;
-    final approverName = _getApproverName(
-        duty.approverId); // Fetch dynamically based on approverId
+    final approverName = _getApproverName(duty.approverId); // Fetch dynamically based on approverId
 
     // We'll parse status and format dates
     final displayedDate = _formatDate(duty.dutyDate.toIso8601String());
     final displayedStart = _formatTime(duty.startTime);
     final displayedEnd = _formatTime(duty.endTime);
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Detail Duty",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Duty Details",
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 20),
+        Card(
+          elevation: 4,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title and Timestamps
+                // Description and Timestamps
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    if (constraints.maxWidth > 300) {
+                    if (constraints.maxWidth > 500) {
                       // Desktop-like horizontal layout
                       return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Description
                           Expanded(
-                            child: Text(
-                              description,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  description,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  "Date: $displayedDate",
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                Text(
+                                  "Time: $displayedStart - $displayedEnd",
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 20),
-                          // Created and Modified
+                          const SizedBox(width: 40),
                           Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Created: $_createdAt",
-                                style: const TextStyle(fontSize: 12),
+                                "Created:",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey.shade700),
                               ),
+                              const SizedBox(height: 4),
                               Text(
-                                "Modified: $_modifiedAt",
-                                style: const TextStyle(fontSize: 12),
+                                _createdAt,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                "Modified:",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey.shade700),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _modifiedAt,
+                                style: const TextStyle(fontSize: 14),
                               ),
                             ],
                           ),
@@ -345,68 +383,115 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           Text(
-                            "Created: $_createdAt",
-                            style: const TextStyle(fontSize: 12),
+                            "Date: $displayedDate",
+                            style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            "Modified: $_modifiedAt",
-                            style: const TextStyle(fontSize: 12),
+                            "Time: $displayedStart - $displayedEnd",
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            "Created:",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade700),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _createdAt,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            "Modified:",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade700),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _modifiedAt,
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ],
                       );
                     }
                   },
                 ),
-                const SizedBox(height: 8),
-                Text("Date: $displayedDate"),
-                Text("Time: $displayedStart - $displayedEnd"),
-                const SizedBox(height: 10),
-                const Divider(),
-
-                // Created By
-                const Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 4),
-                    Text(
-                      "User Created By:",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text("Nama : $createdBy"),
-                const Text("NIK : 4163 (dummy)"),
-                const Text("Jabatan : APPLICATION SUPPORT STAFF"),
-                const Divider(),
-
-                // Approver
-                const Row(
-                  children: [
-                    Icon(Icons.approval),
-                    SizedBox(width: 4),
-                    Text(
-                      "Approver",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text("Nama : $approverName"),
-                const Text("NIK : 3713"),
-                const Text("Jabatan : SENIOR PROGRAMMER"),
-
                 const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 20),
+
+                // Created By Section
+                const Row(
+                  children: [
+                    Icon(Icons.person, color: Colors.teal),
+                    SizedBox(width: 8),
+                    Text(
+                      "Created By:",
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Name: $createdBy",
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const Text(
+                  "NIK: 4163 (dummy)",
+                  style: TextStyle(fontSize: 16),
+                ),
+                const Text(
+                  "Position: Application Support Staff",
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 20),
+
+                // Approver Section
+                const Row(
+                  children: [
+                    Icon(Icons.approval, color: Colors.teal),
+                    SizedBox(width: 8),
+                    Text(
+                      "Approver:",
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Name: $approverName",
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const Text(
+                  "NIK: 3713",
+                  style: TextStyle(fontSize: 16),
+                ),
+                const Text(
+                  "Position: Senior Programmer",
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 20),
+
+                // Action Buttons
                 _buildActionButtons(status),
                 // Display Rejection Reason if status is Rejected
                 if (isRejected) _buildRejectionReason(),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -444,23 +529,39 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     // If it's a DRAFT -> We can Edit, Send, or Delete
     if (isDraft) {
       return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           ElevatedButton.icon(
             icon: const Icon(Icons.edit),
             label: const Text("Edit"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              textStyle: const TextStyle(fontSize: 16),
+            ),
             onPressed: _onEdit,
           ),
-          const SizedBox(width: 10),
           ElevatedButton.icon(
             icon: const Icon(Icons.send),
             label: const Text("Send"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              textStyle: const TextStyle(fontSize: 16),
+            ),
             onPressed: _onSend,
           ),
-          const SizedBox(width: 10),
           ElevatedButton.icon(
             icon: const Icon(Icons.delete),
             label: const Text("Delete"),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              textStyle: const TextStyle(fontSize: 16),
+            ),
             onPressed: _onDelete,
           ),
         ],
@@ -469,16 +570,28 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     // If it's RETURNED -> We can Edit and Send, but not Delete
     else if (isReturned) {
       return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           ElevatedButton.icon(
             icon: const Icon(Icons.edit),
             label: const Text("Edit"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              textStyle: const TextStyle(fontSize: 16),
+            ),
             onPressed: _onEdit,
           ),
-          const SizedBox(width: 10),
           ElevatedButton.icon(
             icon: const Icon(Icons.send),
             label: const Text("Send"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              textStyle: const TextStyle(fontSize: 16),
+            ),
             onPressed: _onSend,
           ),
         ],
@@ -486,10 +599,17 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     }
     // If it's WAITING or APPROVED -> we can only Print
     else if (isWaiting || isApproved) {
-      return ElevatedButton.icon(
-        icon: const Icon(Icons.print),
-        label: Text("Print (${capitalize(status)})"),
-        onPressed: _onPrint,
+      return Center(
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.print),
+          label: Text("Print (${capitalize(status)})"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            textStyle: const TextStyle(fontSize: 16),
+          ),
+          onPressed: _onPrint,
+        ),
       );
     }
     // If it's REJECTED -> we can only Print and view Rejection Reason
@@ -500,6 +620,12 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
           ElevatedButton.icon(
             icon: const Icon(Icons.print),
             label: Text("Print (${capitalize(status)})"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              textStyle: const TextStyle(fontSize: 16),
+            ),
             onPressed: _onPrint,
           ),
           const SizedBox(height: 10),
@@ -508,6 +634,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.red.shade700,
+              fontSize: 16,
             ),
           ),
           const SizedBox(height: 4),
@@ -518,6 +645,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
             style: const TextStyle(
               color: Colors.red,
               fontStyle: FontStyle.italic,
+              fontSize: 14,
             ),
           ),
         ],
@@ -525,10 +653,17 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     }
     // Default case
     else {
-      return ElevatedButton.icon(
-        icon: const Icon(Icons.print),
-        label: Text("Print (${capitalize(status)})"),
-        onPressed: _onPrint,
+      return Center(
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.print),
+          label: Text("Print (${capitalize(status)})"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            textStyle: const TextStyle(fontSize: 16),
+          ),
+          onPressed: _onPrint,
+        ),
       );
     }
   }

@@ -36,6 +36,9 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   DateTime? filterStartDate;
   DateTime? filterEndDate;
 
+  // Role selection
+  String? selectedRole; // 'conceptor/maker' or 'approval'
+
   // API Service and Secure Storage instances
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
@@ -46,11 +49,52 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchDuties(); // Fetch duties on initialization
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showRoleSelectionDialog();
+    });
+  }
+
+  /// Shows a dialog to select the user role
+  void _showRoleSelectionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text("Select Role"),
+        content: const Text("Please select your role to proceed."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                selectedRole = "conceptor/maker";
+              });
+              _fetchDuties();
+            },
+            child: const Text("As Conceptor/Maker"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                selectedRole = "approval";
+              });
+              _fetchDuties();
+            },
+            child: const Text("As Approval"),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Fetches duties from the API
   Future<void> _fetchDuties() async {
+    if (selectedRole == null) return;
+
     setState(() {
       isLoading = true;
       errorMessage = null;
@@ -79,7 +123,10 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
         errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage ?? 'Failed to load duties.')),
+        SnackBar(
+          content: Text(errorMessage ?? 'Failed to load duties.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     } finally {
       setState(() {
@@ -88,10 +135,14 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     }
   }
 
-  /// Filters the duties based on search query, selected status, and date range
+  /// Filters the duties based on search query, selected status, date range, and role
   void filterDuties() {
     setState(() {
       filteredDuties = duties.where((duty) {
+        bool matchesRole = selectedRole == "conceptor/maker"
+            ? _isConceptorMakerDuty(duty)
+            : _isApprovalDuty(duty);
+
         bool matchesSearch = duty.description
                 ?.toLowerCase()
                 .contains(searchQuery.toLowerCase()) ??
@@ -111,7 +162,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
             : duty.dutyDate
                 .isBefore(filterEndDate!.add(const Duration(days: 1)));
 
-        return matchesSearch &&
+        return matchesRole &&
+            matchesSearch &&
             matchesStatus &&
             matchesStartDate &&
             matchesEndDate;
@@ -119,6 +171,29 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
       currentPage = 1; // Reset to first page on filter
     });
+  }
+
+  /// Determines if a duty belongs to Conceptor/Maker role
+  bool _isConceptorMakerDuty(Duty duty) {
+    // Define logic to determine if duty is for Conceptor/Maker
+    return [
+      "Draft",
+      "Waiting",
+      "Returned",
+      "Approved",
+      "Rejected"
+    ].contains(duty.status);
+  }
+
+  /// Determines if a duty belongs to Approval role
+  bool _isApprovalDuty(Duty duty) {
+    // Define logic to determine if duty is for Approval
+    return [
+      "Need Approve",
+      "Return",
+      "Approve",
+      "Reject"
+    ].contains(duty.status);
   }
 
   /// Sorts the duties based on the selected column
@@ -176,6 +251,23 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       initialDate: initialDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.teal, // Header background color
+              onPrimary: Colors.white, // Header text color
+              onSurface: Colors.teal, // Body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.teal, // Button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -212,6 +304,23 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (selectedRole == null) {
+      // Role not selected yet
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.teal,
+          elevation: 1,
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text(
+            "Request Duty Status",
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+        bottomNavigationBar: const CustomBottomAppBar(),
+      );
+    }
+
     int totalPages = (filteredDuties.length / recordsPerPage).ceil();
     int startIndex = (currentPage - 1) * recordsPerPage;
     int endIndex = startIndex + recordsPerPage;
@@ -229,6 +338,16 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
           "Request Duty Status",
           style: TextStyle(color: Colors.white),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.switch_account),
+            onPressed: () {
+              // Allow user to switch role
+              _showRoleSelectionDialog();
+            },
+            tooltip: "Switch Role",
+          ),
+        ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -240,20 +359,13 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                 Container(
                   width: 250,
                   color: const Color(0xFFf8f9fa),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Create Duty Form Button
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 20,
-                            ),
-                          ),
+                        ElevatedButton.icon(
                           onPressed: () async {
                             await Navigator.push(
                               context,
@@ -264,443 +376,40 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                             );
                             _fetchDuties(); // Refresh duties after form submission
                           },
-                          child: const Text("Create Duty Form"),
+                          icon: const Icon(Icons.add),
+                          label: const Text("Create Duty Form"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 30),
                         const Text(
                           "ALL DUTY",
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.teal),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 15),
                         _buildStatusItem(
                             "All", filteredDuties.length, Colors.teal),
                         const Divider(),
-                        const Text(
-                          "AS A CONCEPTOR / MAKER",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 10),
-                        _buildStatusItem(
-                            "Draft",
-                            duties
-                                .where((duty) => duty.status == "Draft")
-                                .length,
-                            Colors.grey),
-                        _buildStatusItem(
-                          "Waiting",
-                          duties
-                              .where((duty) => duty.status == "Waiting")
-                              .length,
-                          Colors.orange,
-                        ),
-                        _buildStatusItem(
-                            "Returned",
-                            duties
-                                .where((duty) => duty.status == "Returned")
-                                .length,
-                            Colors.blue),
-                        _buildStatusItem(
-                          "Approved",
-                          duties
-                              .where((duty) => duty.status == "Approved")
-                              .length,
-                          Colors.green,
-                        ),
-                        _buildStatusItem(
-                            "Rejected",
-                            duties
-                                .where((duty) => duty.status == "Rejected")
-                                .length,
-                            Colors.red),
-                        const Divider(),
-                        const Text(
-                          "AS AN APPROVAL",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 10),
-                        _buildStatusItem(
-                            "Need Approve",
-                            duties
-                                .where((duty) => duty.status == "Need Approve")
-                                .length,
-                            Colors.orange),
-                        _buildStatusItem(
-                            "Return",
-                            duties
-                                .where((duty) => duty.status == "Return")
-                                .length,
-                            Colors.blue),
-                        _buildStatusItem(
-                            "Approve",
-                            duties
-                                .where((duty) => duty.status == "Approve")
-                                .length,
-                            Colors.green),
-                        _buildStatusItem(
-                            "Reject",
-                            duties
-                                .where((duty) => duty.status == "Reject")
-                                .length,
-                            Colors.red),
-                      ],
-                    ),
-                  ),
-                ),
-
-                /// Main Content
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Title
-                              const Text(
-                                "All Duty in 2024",
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Filter Controls
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  // Status Filter
-                                  Row(
-                                    children: [
-                                      const Text(
-                                        "Status:",
-                                        style: TextStyle(fontSize: 16),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      DropdownButton<String>(
-                                        value: selectedStatus,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            selectedStatus = value!;
-                                            filterDuties();
-                                          });
-                                        },
-                                        items: const [
-                                          DropdownMenuItem(
-                                            value: "All",
-                                            child: Text("All"),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: "Approved",
-                                            child: Text("Approved"),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: "Waiting",
-                                            child: Text("Waiting"),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: "Rejected",
-                                            child: Text("Rejected"),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: "Draft",
-                                            child: Text("Draft"),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: "Returned",
-                                            child: Text("Returned"),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: "Need Approve",
-                                            child: Text("Need Approve"),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: "Return",
-                                            child: Text("Return"),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: "Approve",
-                                            child: Text("Approve"),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: "Reject",
-                                            child: Text("Reject"),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-
-                                  // Date Range Filter
-                                  Row(
-                                    children: [
-                                      // Start Date
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.calendar_today,
-                                              size: 16),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            filterStartDate == null
-                                                ? "Start Date"
-                                                : DateFormat('dd-MM-yyyy')
-                                                    .format(filterStartDate!),
-                                            style:
-                                                const TextStyle(fontSize: 16),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.edit,
-                                                size: 20),
-                                            onPressed: () {
-                                              _selectDate(context, true);
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(width: 10),
-                                      // End Date
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.calendar_today,
-                                              size: 16),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            filterEndDate == null
-                                                ? "End Date"
-                                                : DateFormat('dd-MM-yyyy')
-                                                    .format(filterEndDate!),
-                                            style:
-                                                const TextStyle(fontSize: 16),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.edit,
-                                                size: 20),
-                                            onPressed: () {
-                                              _selectDate(context, false);
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-
-                                  // Clear Filters Button
-                                  ElevatedButton(
-                                    onPressed: _clearFilters,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.redAccent,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                        horizontal: 12,
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      "Clear Filters",
-                                      style: TextStyle(fontSize: 14),
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 20),
-
-                              // Header: records & search
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  DropdownButton<String>(
-                                    value: recordsPerPage.toString(),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        recordsPerPage = int.parse(value!);
-                                        currentPage = 1; // reset
-                                      });
-                                    },
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: "10",
-                                        child: Text("10 records per page"),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: "25",
-                                        child: Text("25 records per page"),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: "50",
-                                        child: Text("50 records per page"),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: "100",
-                                        child: Text("100 records per page"),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(
-                                    width: 200,
-                                    child: TextField(
-                                      onChanged: (value) {
-                                        setState(() {
-                                          searchQuery = value;
-                                          filterDuties();
-                                        });
-                                      },
-                                      decoration: InputDecoration(
-                                        hintText: "Search",
-                                        prefixIcon: const Icon(Icons.search),
-                                        border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-
-                              // Table
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Container(
-                                    // Make the table width responsive
-                                    constraints: const BoxConstraints(
-                                      minWidth:
-                                          600, // Minimum width to prevent collapsing
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // Headers
-                                        Row(
-                                          children: [
-                                            _buildSortableColumn(
-                                                "Keterangan", "keterangan"),
-                                            _buildSortableColumn(
-                                                "Tanggal Tugas", "dutyDate"),
-                                            _buildSortableColumn(
-                                                "Status", "status"),
-                                            // Removed "Jam Mulai" and "Jam Selesai" headers
-                                          ],
-                                        ),
-                                        const Divider(
-                                          thickness: 1.5,
-                                        ),
-                                        // Rows
-                                        ListView.builder(
-                                          shrinkWrap: true,
-                                          physics:
-                                              const NeverScrollableScrollPhysics(),
-                                          itemCount: visibleDuties.length,
-                                          itemBuilder: (context, index) {
-                                            final duty = visibleDuties[index];
-                                            return _buildTableRow(duty: duty);
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              // Pagination
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    "Showing ${startIndex + 1} to "
-                                    "${endIndex > filteredDuties.length ? filteredDuties.length : endIndex} "
-                                    "of ${filteredDuties.length} entries",
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                  Row(
-                                    children: [
-                                      TextButton(
-                                        onPressed: currentPage > 1
-                                            ? () {
-                                                setState(() {
-                                                  currentPage--;
-                                                });
-                                              }
-                                            : null,
-                                        child: const Text("Previous"),
-                                      ),
-                                      Text(
-                                        "Page $currentPage of $totalPages",
-                                        style: const TextStyle(fontSize: 14),
-                                      ),
-                                      TextButton(
-                                        onPressed: currentPage < totalPages
-                                            ? () {
-                                                setState(() {
-                                                  currentPage++;
-                                                });
-                                              }
-                                            : null,
-                                        child: const Text("Next"),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-              ],
-            );
-          } else {
-            // Mobile
-            return isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Create Duty Form Button
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 10,
-                                horizontal: 20,
-                              ),
-                            ),
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      CreateDutyForm(duties: duties),
-                                ),
-                              );
-                              _fetchDuties(); // Refresh duties after form submission
-                            },
-                            child: const Text("Create Duty Form"),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            "ALL DUTY",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          const Divider(),
+                        if (selectedRole == "conceptor/maker") ...[
                           const Text(
                             "AS A CONCEPTOR / MAKER",
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.teal),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 15),
                           _buildStatusItem(
                               "Draft",
                               duties
@@ -733,13 +442,15 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                   .where((duty) => duty.status == "Rejected")
                                   .length,
                               Colors.red),
-                          const Divider(),
+                        ] else if (selectedRole == "approval") ...[
                           const Text(
                             "AS AN APPROVAL",
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.teal),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 15),
                           _buildStatusItem(
                               "Need Approve",
                               duties
@@ -765,13 +476,457 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                   .where((duty) => duty.status == "Reject")
                                   .length,
                               Colors.red),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                /// Main Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Title
+                              Text(
+                                "All Duty in ${DateTime.now().year}",
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.teal,
+                                ),
+                              ),
+                              const SizedBox(height: 30),
+
+                              // Filter Controls
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // Status Filter
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        "Status:",
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      DropdownButton<String>(
+                                        value: selectedStatus,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            selectedStatus = value!;
+                                            filterDuties();
+                                          });
+                                        },
+                                        items: _getStatusDropdownItems(),
+                                        dropdownColor: Colors.white,
+                                        style: const TextStyle(
+                                            color: Colors.black, fontSize: 16),
+                                        iconEnabledColor: Colors.teal,
+                                        underline: Container(
+                                          height: 2,
+                                          color: Colors.teal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  // Date Range Filter
+                                  Row(
+                                    children: [
+                                      // Start Date
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.calendar_today,
+                                              size: 20, color: Colors.teal),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            filterStartDate == null
+                                                ? "Start Date"
+                                                : DateFormat('dd-MM-yyyy')
+                                                    .format(filterStartDate!),
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.edit,
+                                                size: 20, color: Colors.teal),
+                                            onPressed: () {
+                                              _selectDate(context, true);
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 20),
+                                      // End Date
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.calendar_today,
+                                              size: 20, color: Colors.teal),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            filterEndDate == null
+                                                ? "End Date"
+                                                : DateFormat('dd-MM-yyyy')
+                                                    .format(filterEndDate!),
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.edit,
+                                                size: 20, color: Colors.teal),
+                                            onPressed: () {
+                                              _selectDate(context, false);
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+
+                                  // Clear Filters Button
+                                  ElevatedButton.icon(
+                                    onPressed: _clearFilters,
+                                    icon: const Icon(Icons.clear),
+                                    label: const Text("Clear Filters"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.redAccent,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                        horizontal: 16,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 30),
+
+                              // Header: records & search
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  DropdownButton<String>(
+                                    value: recordsPerPage.toString(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        recordsPerPage = int.parse(value!);
+                                        currentPage = 1; // reset
+                                      });
+                                    },
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: "10",
+                                        child: Text("10 per page"),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: "25",
+                                        child: Text("25 per page"),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: "50",
+                                        child: Text("50 per page"),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: "100",
+                                        child: Text("100 per page"),
+                                      ),
+                                    ],
+                                    dropdownColor: Colors.white,
+                                    style: const TextStyle(
+                                        color: Colors.black, fontSize: 16),
+                                    iconEnabledColor: Colors.teal,
+                                    underline: Container(
+                                      height: 2,
+                                      color: Colors.teal,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 250,
+                                    child: TextField(
+                                      onChanged: (value) {
+                                        setState(() {
+                                          searchQuery = value;
+                                          filterDuties();
+                                        });
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: "Search",
+                                        prefixIcon: const Icon(Icons.search),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                vertical: 0, horizontal: 16),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(30),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Table
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Container(
+                                    // Make the table width responsive
+                                    constraints: const BoxConstraints(
+                                      minWidth:
+                                          800, // Increased min width for better layout
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Headers
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 12, horizontal: 16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.teal.shade50,
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              _buildSortableColumn(
+                                                  "Keterangan", "keterangan"),
+                                              _buildSortableColumn(
+                                                  "Tanggal Tugas", "dutyDate"),
+                                              _buildSortableColumn(
+                                                  "Status", "status"),
+                                              // Removed "Jam Mulai" and "Jam Selesai" headers
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        // Rows
+                                        ListView.builder(
+                                          shrinkWrap: true,
+                                          physics:
+                                              const NeverScrollableScrollPhysics(),
+                                          itemCount: visibleDuties.length,
+                                          itemBuilder: (context, index) {
+                                            final duty = visibleDuties[index];
+                                            return _buildTableRow(duty: duty);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              // Pagination
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Showing ${startIndex + 1} to "
+                                    "${endIndex > filteredDuties.length ? filteredDuties.length : endIndex} "
+                                    "of ${filteredDuties.length} entries",
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.teal),
+                                  ),
+                                  Row(
+                                    children: [
+                                      TextButton(
+                                        onPressed: currentPage > 1
+                                            ? () {
+                                                setState(() {
+                                                  currentPage--;
+                                                });
+                                              }
+                                            : null,
+                                        child: const Text("Previous"),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.teal,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        "Page $currentPage of $totalPages",
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.teal),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      TextButton(
+                                        onPressed: currentPage < totalPages
+                                            ? () {
+                                                setState(() {
+                                                  currentPage++;
+                                                });
+                                              }
+                                            : null,
+                                        child: const Text("Next"),
+                                        style: TextButton.styleFrom(
+                                          backgroundColor: Colors.teal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+            );
+          } else {
+            // Mobile
+            return isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Create Duty Form Button
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      CreateDutyForm(duties: duties),
+                                ),
+                              );
+                              _fetchDuties(); // Refresh duties after form submission
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text("Create Duty Form"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            "ALL DUTY",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: Colors.teal),
+                          ),
+                          const SizedBox(height: 10),
+                          const Divider(),
+                          if (selectedRole == "conceptor/maker") ...[
+                            const Text(
+                              "AS A CONCEPTOR / MAKER",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.teal),
+                            ),
+                            const SizedBox(height: 15),
+                            _buildStatusItem(
+                                "Draft",
+                                duties
+                                    .where((duty) => duty.status == "Draft")
+                                    .length,
+                                Colors.grey),
+                            _buildStatusItem(
+                              "Waiting",
+                              duties
+                                  .where((duty) => duty.status == "Waiting")
+                                  .length,
+                              Colors.orange,
+                            ),
+                            _buildStatusItem(
+                                "Returned",
+                                duties
+                                    .where((duty) => duty.status == "Returned")
+                                    .length,
+                                Colors.blue),
+                            _buildStatusItem(
+                              "Approved",
+                              duties
+                                  .where((duty) => duty.status == "Approved")
+                                  .length,
+                              Colors.green,
+                            ),
+                            _buildStatusItem(
+                                "Rejected",
+                                duties
+                                    .where((duty) => duty.status == "Rejected")
+                                    .length,
+                                Colors.red),
+                          ] else if (selectedRole == "approval") ...[
+                            const Text(
+                              "AS AN APPROVAL",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.teal),
+                            ),
+                            const SizedBox(height: 15),
+                            _buildStatusItem(
+                                "Need Approve",
+                                duties
+                                    .where(
+                                        (duty) => duty.status == "Need Approve")
+                                    .length,
+                                Colors.orange),
+                            _buildStatusItem(
+                                "Return",
+                                duties
+                                    .where((duty) => duty.status == "Return")
+                                    .length,
+                                Colors.blue),
+                            _buildStatusItem(
+                                "Approve",
+                                duties
+                                    .where((duty) => duty.status == "Approve")
+                                    .length,
+                                Colors.green),
+                            _buildStatusItem(
+                                "Reject",
+                                duties
+                                    .where((duty) => duty.status == "Reject")
+                                    .length,
+                                Colors.red),
+                          ],
                           const SizedBox(height: 20),
 
                           // Title
-                          const Text(
-                            "All Duty in 2024",
-                            style: TextStyle(
-                                fontSize: 22, fontWeight: FontWeight.bold),
+                          Text(
+                            "All Duty in ${DateTime.now().year}",
+                            style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal),
                           ),
                           const SizedBox(height: 20),
 
@@ -788,6 +943,13 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                 label: const Text("Filter"),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.teal,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                    horizontal: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
                                 ),
                               ),
 
@@ -820,10 +982,18 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                         child: Text("100"),
                                       ),
                                     ],
+                                    dropdownColor: Colors.white,
+                                    style: const TextStyle(
+                                        color: Colors.black, fontSize: 16),
+                                    iconEnabledColor: Colors.teal,
+                                    underline: Container(
+                                      height: 2,
+                                      color: Colors.teal,
+                                    ),
                                   ),
                                   const SizedBox(width: 10),
                                   SizedBox(
-                                    width: 150,
+                                    width: 200,
                                     child: TextField(
                                       onChanged: (value) {
                                         setState(() {
@@ -834,9 +1004,15 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                       decoration: InputDecoration(
                                         hintText: "Search",
                                         prefixIcon: const Icon(Icons.search),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                vertical: 0, horizontal: 16),
                                         border: OutlineInputBorder(
                                           borderRadius:
-                                              BorderRadius.circular(8),
+                                              BorderRadius.circular(30),
+                                          borderSide: BorderSide.none,
                                         ),
                                       ),
                                     ),
@@ -858,13 +1034,17 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
                           // Pagination
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 "Showing ${startIndex + 1} to "
                                 "${endIndex > filteredDuties.length ? filteredDuties.length : endIndex} "
                                 "of ${filteredDuties.length} entries",
-                                style: const TextStyle(fontSize: 14),
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.teal),
                               ),
                               Row(
                                 children: [
@@ -877,11 +1057,19 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                           }
                                         : null,
                                     child: const Text("Previous"),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.teal,
+                                    ),
                                   ),
+                                  const SizedBox(width: 10),
                                   Text(
                                     "Page $currentPage of $totalPages",
-                                    style: const TextStyle(fontSize: 14),
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.teal),
                                   ),
+                                  const SizedBox(width: 10),
                                   TextButton(
                                     onPressed: currentPage < totalPages
                                         ? () {
@@ -891,6 +1079,9 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                                           }
                                         : null,
                                     child: const Text("Next"),
+                                    style: TextButton.styleFrom(
+                                      backgroundColor: Colors.teal,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -911,6 +1102,9 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   void _openFilterModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return Padding(
           padding:
@@ -923,7 +1117,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                 children: [
                   const Text(
                     "Status:",
-                    style: TextStyle(fontSize: 16),
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -937,48 +1132,15 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                         });
                         Navigator.pop(context);
                       },
-                      items: const [
-                        DropdownMenuItem(
-                          value: "All",
-                          child: Text("All"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Approved",
-                          child: Text("Approved"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Waiting",
-                          child: Text("Waiting"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Rejected",
-                          child: Text("Rejected"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Draft",
-                          child: Text("Draft"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Returned",
-                          child: Text("Returned"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Need Approve",
-                          child: Text("Need Approve"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Return",
-                          child: Text("Return"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Approve",
-                          child: Text("Approve"),
-                        ),
-                        DropdownMenuItem(
-                          value: "Reject",
-                          child: Text("Reject"),
-                        ),
-                      ],
+                      items: _getStatusDropdownItems(),
+                      dropdownColor: Colors.white,
+                      style: const TextStyle(
+                          color: Colors.black, fontSize: 16),
+                      iconEnabledColor: Colors.teal,
+                      underline: Container(
+                        height: 2,
+                        color: Colors.teal,
+                      ),
                     ),
                   ),
                 ],
@@ -988,16 +1150,17 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
               // Date Range Filter
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 16),
-                  const SizedBox(width: 4),
+                  const Icon(Icons.calendar_today, size: 20, color: Colors.teal),
+                  const SizedBox(width: 8),
                   Text(
                     filterStartDate == null
                         ? "Start Date"
                         : DateFormat('dd-MM-yyyy').format(filterStartDate!),
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
+                    icon: const Icon(Icons.edit, size: 20, color: Colors.teal),
                     onPressed: () {
                       _selectDate(context, true);
                     },
@@ -1007,16 +1170,17 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 16),
-                  const SizedBox(width: 4),
+                  const Icon(Icons.calendar_today, size: 20, color: Colors.teal),
+                  const SizedBox(width: 8),
                   Text(
                     filterEndDate == null
                         ? "End Date"
                         : DateFormat('dd-MM-yyyy').format(filterEndDate!),
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
+                    icon: const Icon(Icons.edit, size: 20, color: Colors.teal),
                     onPressed: () {
                       _selectDate(context, false);
                     },
@@ -1026,19 +1190,23 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
               const SizedBox(height: 20),
 
               // Clear Filters Button
-              ElevatedButton(
+              ElevatedButton.icon(
                 onPressed: () {
                   _clearFilters();
                   Navigator.pop(context);
                 },
+                icon: const Icon(Icons.clear),
+                label: const Text("Clear Filters"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.redAccent,
                   padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 20,
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text("Clear Filters"),
               ),
             ],
           ),
@@ -1047,27 +1215,102 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
     );
   }
 
+  /// Get dropdown items based on selected role
+  List<DropdownMenuItem<String>> _getStatusDropdownItems() {
+    if (selectedRole == "conceptor/maker") {
+      return const [
+        DropdownMenuItem(
+          value: "All",
+          child: Text("All"),
+        ),
+        DropdownMenuItem(
+          value: "Draft",
+          child: Text("Draft"),
+        ),
+        DropdownMenuItem(
+          value: "Waiting",
+          child: Text("Waiting"),
+        ),
+        DropdownMenuItem(
+          value: "Returned",
+          child: Text("Returned"),
+        ),
+        DropdownMenuItem(
+          value: "Approved",
+          child: Text("Approved"),
+        ),
+        DropdownMenuItem(
+          value: "Rejected",
+          child: Text("Rejected"),
+        ),
+      ];
+    } else {
+      return const [
+        DropdownMenuItem(
+          value: "All",
+          child: Text("All"),
+        ),
+        DropdownMenuItem(
+          value: "Need Approve",
+          child: Text("Need Approve"),
+        ),
+        DropdownMenuItem(
+          value: "Return",
+          child: Text("Return"),
+        ),
+        DropdownMenuItem(
+          value: "Approve",
+          child: Text("Approve"),
+        ),
+        DropdownMenuItem(
+          value: "Reject",
+          child: Text("Reject"),
+        ),
+      ];
+    }
+  }
+
   /// Show sidebar status item
   Widget _buildStatusItem(String status, int count, Color color) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              status,
-              style: const TextStyle(fontSize: 14),
-            ),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            selectedStatus = status;
+            filterDuties();
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          decoration: BoxDecoration(
+            color: selectedStatus == status
+                ? color.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
           ),
-          CircleAvatar(
-            backgroundColor: color,
-            radius: 10,
-            child: Text(
-              count.toString(),
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  status,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: color),
+                ),
+              ),
+              CircleAvatar(
+                backgroundColor: color,
+                radius: 12,
+                child: Text(
+                  count.toString(),
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1089,6 +1332,18 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       case "Rejected":
         statusColor = Colors.red;
         break;
+      case "Need Approve":
+        statusColor = Colors.orange;
+        break;
+      case "Return":
+        statusColor = Colors.blue;
+        break;
+      case "Approve":
+        statusColor = Colors.green;
+        break;
+      case "Reject":
+        statusColor = Colors.red;
+        break;
       default:
         statusColor = Colors.grey;
     }
@@ -1098,20 +1353,29 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => DutyDetailScreen(duty: duty, allDuties: duties),
+            builder: (_) =>
+                DutyDetailScreen(duty: duty, allDuties: duties),
           ),
         ).then((_) {
           _fetchDuties(); // Refresh duties after returning from detail screen
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+        padding:
+            const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade300),
-          ),
           color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.teal.withOpacity(0.05),
+              blurRadius: 10,
+              spreadRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
+        margin: const EdgeInsets.only(bottom: 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1124,12 +1388,13 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   Text(
                     duty.description ?? "",
                     style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500),
+                        fontSize: 16, fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     "${_formatTime(duty.startTime)} - ${_formatTime(duty.endTime)}",
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 ],
               ),
@@ -1139,7 +1404,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
               flex: 2,
               child: Text(
                 _formatDate(duty.dutyDate.toIso8601String()),
-                style: const TextStyle(fontSize: 14),
+                style: const TextStyle(fontSize: 16, color: Colors.teal),
               ),
             ),
             // Status
@@ -1151,7 +1416,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(5),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                 child: Text(
                   duty.status,
                   style: TextStyle(
@@ -1177,14 +1443,20 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal),
             ),
             const SizedBox(width: 4),
             Icon(
               sortColumn == columnKey
-                  ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
+                  ? (ascending
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward)
                   : Icons.unfold_more, // default icon
-              size: 16,
+              size: 18,
+              color: Colors.teal,
             ),
           ],
         ),
@@ -1232,42 +1504,58 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       case "Rejected":
         statusColor = Colors.red;
         break;
+      case "Need Approve":
+        statusColor = Colors.orange;
+        break;
+      case "Return":
+        statusColor = Colors.blue;
+        break;
+      case "Approve":
+        statusColor = Colors.green;
+        break;
+      case "Reject":
+        statusColor = Colors.red;
+        break;
       default:
         statusColor = Colors.grey;
     }
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6.0),
-      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
       child: InkWell(
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => DutyDetailScreen(duty: duty, allDuties: duties),
+              builder: (_) =>
+                  DutyDetailScreen(duty: duty, allDuties: duties),
             ),
           ).then((_) {
             _fetchDuties(); // Refresh duties after returning from detail screen
           });
         },
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Description
               Text(
                 duty.description ?? "",
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               // Time Range
               Text(
                 "${_formatTime(duty.startTime)} - ${_formatTime(duty.endTime)}",
                 style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               // Date and Status
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1276,12 +1564,14 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   Row(
                     children: [
                       const Icon(Icons.calendar_today,
-                          size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
+                          size: 18, color: Colors.teal),
+                      const SizedBox(width: 6),
                       Text(
                         _formatDate(duty.dutyDate.toIso8601String()),
-                        style:
-                            const TextStyle(fontSize: 14, color: Colors.grey),
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.teal),
                       ),
                     ],
                   ),
@@ -1292,7 +1582,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                       borderRadius: BorderRadius.circular(5),
                     ),
                     padding:
-                        const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                     child: Text(
                       duty.status,
                       style: TextStyle(
@@ -1308,12 +1598,12 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   duty.rejectionReason != null &&
                   duty.rejectionReason!.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
+                  padding: const EdgeInsets.only(top: 12.0),
                   child: Text(
                     "Reason: ${duty.rejectionReason}",
                     style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.red,
+                        color: Colors.redAccent,
                         fontStyle: FontStyle.italic),
                   ),
                 ),

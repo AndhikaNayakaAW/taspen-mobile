@@ -13,8 +13,6 @@ import 'package:intl/intl.dart'; // Import intl for date formatting
 import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import for Secure Storage
 import 'dart:convert'; // Import for JSON decoding
 
-// lib/screens/create_duty_form.dart
-
 class CreateDutyForm extends StatefulWidget {
   /// We pass the entire duties list so we can add a new draft or waiting item
   final List<Duty> duties;
@@ -46,9 +44,12 @@ class CreateDutyFormState extends State<CreateDutyForm> {
   String? errorMessage;
 
   // ----- State Variables -----
-  // List of EmployeeDuty objects
-  List<EmployeeDuty> _employee = [
-    EmployeeDuty(employeeId: "", employeeName: "", description: ""),
+  // Description
+  String _description = "";
+
+  // List of EmployeeDuty objects for employee selections
+  List<EmployeeDuty> _employeeDuties = [
+    EmployeeDuty(employeeId: "", employeeName: ""),
   ];
 
   // Single approver (id)
@@ -68,6 +69,20 @@ class CreateDutyFormState extends State<CreateDutyForm> {
   // Flag to determine if the duty is rejected
   bool isRejected = false;
 
+  // Selected Action from Dropdown
+  String? _selectedAction;
+
+  // Original Data for Reset
+  String _initialDescription = "";
+  List<EmployeeDuty> _initialEmployeeDuties = [];
+  String? _initialApproverId;
+  DateTime? _initialDutyDate;
+  TimeOfDay? _initialStartTime;
+  TimeOfDay? _initialEndTime;
+  String? _initialTransport;
+  bool _initialIsRejected = false;
+  String? _initialRejectionReason;
+
   // Consistent TextStyle
   final TextStyle _labelStyle = const TextStyle(
     fontSize: 16,
@@ -80,6 +95,9 @@ class CreateDutyFormState extends State<CreateDutyForm> {
 
   // Form Key
   final _formKey = GlobalKey<FormState>();
+
+  /// Getter to determine if the form is in editing mode
+  bool get isEditing => widget.dutyToEdit != null;
 
   @override
   void initState() {
@@ -98,8 +116,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
       User user = await _authService.loadUserInfo();
 
       // Fetch create duty form data from API
-      BaseResponse<CreateDutyResponse> createDutyResponse = await _apiService
-          .createDuty(nik: user.nik, orgeh: user.orgeh, ba: user.ba);
+      BaseResponse<CreateDutyResponse> createDutyResponse =
+          await _apiService.createDuty(nik: user.nik, orgeh: user.orgeh, ba: user.ba);
 
       if (createDutyResponse.metadata.code == 200) {
         setState(() {
@@ -112,13 +130,44 @@ class CreateDutyFormState extends State<CreateDutyForm> {
             final duty = widget.dutyToEdit!;
             isRejected = duty.status.toLowerCase() == "rejected";
             _rejectionReason = duty.rejectionReason ?? "";
-            _employee = List<EmployeeDuty>.from(
-                duty.employee as Iterable<EmployeeDuty>);
+            _description = duty.description ?? "";
+            _employeeDuties = (duty.employee?.isNotEmpty ?? false)
+                ? duty.employee!
+                    .map((e) => EmployeeDuty(
+                          employeeId: e.employeeId,
+                          employeeName: _employeeList[e.employeeId] ?? "",
+                        ))
+                    .toList()
+                : [EmployeeDuty(employeeId: "", employeeName: "")];
             _selectedApproverId = duty.approverId;
             _selectedDutyDate = duty.dutyDate;
             _startTime = _parseTime(duty.startTime);
             _endTime = _parseTime(duty.endTime);
             _selectedTransport = duty.transport;
+
+            // Store initial data for reset
+            _initialDescription = _description;
+            _initialEmployeeDuties = List<EmployeeDuty>.from(_employeeDuties);
+            _initialApproverId = _selectedApproverId;
+            _initialDutyDate = _selectedDutyDate;
+            _initialStartTime = _startTime;
+            _initialEndTime = _endTime;
+            _initialTransport = _selectedTransport;
+            _initialIsRejected = isRejected;
+            _initialRejectionReason = _rejectionReason;
+          } else {
+            // Creating mode: Initialize initial data as empty
+            _initialDescription = "";
+            _initialEmployeeDuties = [
+              EmployeeDuty(employeeId: "", employeeName: ""),
+            ];
+            _initialApproverId = null;
+            _initialDutyDate = null;
+            _initialStartTime = null;
+            _initialEndTime = null;
+            _initialTransport = null;
+            _initialIsRejected = false;
+            _initialRejectionReason = null;
           }
         });
       } else {
@@ -140,17 +189,19 @@ class CreateDutyFormState extends State<CreateDutyForm> {
 
   /// Validate the form fields
   bool _validateForm() {
-    // Check if at least one employee is selected and description is provided
-    for (var entry in _employee) {
+    // Check if description is provided
+    if (_description.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a description.")),
+      );
+      return false;
+    }
+
+    // Check if at least one employee is selected
+    for (var entry in _employeeDuties) {
       if (entry.employeeId.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Please select an employee.")),
-        );
-        return false;
-      }
-      if (entry.description!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please provide a description.")),
         );
         return false;
       }
@@ -193,22 +244,19 @@ class CreateDutyFormState extends State<CreateDutyForm> {
     return true;
   }
 
-  /// Save as Draft
-  void _saveForm() {
+  /// Save as Draft or Update
+  void _saveOrUpdateForm() {
     // Validate form before saving
     if (_validateForm()) {
       Duty dutyData = Duty(
         id: widget.dutyToEdit != null
             ? widget.dutyToEdit!.id
             : (widget.duties.isNotEmpty
-                ? widget.duties
-                        .map((d) => d.id)
-                        .reduce((a, b) => a > b ? a : b) +
-                    1
+                ? widget.duties.map((d) => d.id).reduce((a, b) => a > b ? a : b) + 1
                 : 1),
-        description: _employee.first.description,
+        description: _description,
         dutyDate: _selectedDutyDate ?? DateTime.now(),
-        status: "Draft",
+        status: widget.dutyToEdit != null ? widget.dutyToEdit!.status : "Draft",
         startTime: _startTime == null
             ? "09:00:00"
             : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
@@ -226,13 +274,12 @@ class CreateDutyFormState extends State<CreateDutyForm> {
         rejectionReason: null,
         createdBy: "andhika.nayaka", // Replace with actual user
         approverId: _selectedApproverId,
-        employee: _employee,
+        employee: _employeeDuties,
       );
 
       if (widget.dutyToEdit != null) {
         // Editing mode: Update existing duty based on 'id'
-        int index = widget.duties
-            .indexWhere((duty) => duty.id == widget.dutyToEdit!.id);
+        int index = widget.duties.indexWhere((duty) => duty.id == widget.dutyToEdit!.id);
         if (index != -1) {
           setState(() {
             widget.duties[index] = dutyData;
@@ -264,12 +311,9 @@ class CreateDutyFormState extends State<CreateDutyForm> {
         id: widget.dutyToEdit != null
             ? widget.dutyToEdit!.id
             : (widget.duties.isNotEmpty
-                ? widget.duties
-                        .map((d) => d.id)
-                        .reduce((a, b) => a > b ? a : b) +
-                    1
+                ? widget.duties.map((d) => d.id).reduce((a, b) => a > b ? a : b) + 1
                 : 1),
-        description: _employee.first.description,
+        description: _description,
         dutyDate: _selectedDutyDate ?? DateTime.now(),
         status: "Waiting",
         startTime: _startTime == null
@@ -289,13 +333,12 @@ class CreateDutyFormState extends State<CreateDutyForm> {
         rejectionReason: null,
         createdBy: "andhika.nayaka", // Replace with actual user
         approverId: _selectedApproverId,
-        employee: _employee,
+        employee: _employeeDuties,
       );
 
       if (widget.dutyToEdit != null) {
         // Editing mode: Update existing duty based on 'id'
-        int index = widget.duties
-            .indexWhere((duty) => duty?.id == widget.dutyToEdit!.id);
+        int index = widget.duties.indexWhere((duty) => duty.id == widget.dutyToEdit!.id);
         if (index != -1) {
           setState(() {
             widget.duties[index] = dutyData;
@@ -327,6 +370,23 @@ class CreateDutyFormState extends State<CreateDutyForm> {
       initialDate: _selectedDutyDate ?? now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.teal, // Header background color
+              onPrimary: Colors.white, // Header text color
+              onSurface: Colors.teal, // Body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.teal, // Button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (result != null) {
       setState(() {
@@ -340,6 +400,23 @@ class CreateDutyFormState extends State<CreateDutyForm> {
     final result = await showTimePicker(
       context: context,
       initialTime: isStart ? (_startTime ?? now) : (_endTime ?? now),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.teal, // Header background color
+              onPrimary: Colors.white, // Header text color
+              onSurface: Colors.teal, // Body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.teal, // Button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (result != null) {
       setState(() {
@@ -353,43 +430,227 @@ class CreateDutyFormState extends State<CreateDutyForm> {
   }
 
   // ========== BUTTON HANDLERS ==========
-
   /// Reset the entire form
   void _resetForm() {
     setState(() {
-      if (widget.dutyToEdit != null) {
-        // Reset to existing duty data
-        final duty = widget.dutyToEdit!;
-        _employee =
-            List<EmployeeDuty>.from(duty.employee as Iterable<EmployeeDuty>);
-        _selectedApproverId = duty.approverId;
-        _selectedDutyDate = duty.dutyDate;
-        _startTime = _parseTime(duty.startTime);
-        _endTime = _parseTime(duty.endTime);
-        _selectedTransport = duty.transport;
-        isRejected = duty.status.toLowerCase() == "rejected";
-        _rejectionReason = duty.rejectionReason ?? "";
-      } else {
-        // Reset to default
-        _employee = [
-          EmployeeDuty(employeeId: "", employeeName: "", description: ""),
-        ];
-        _selectedApproverId = null;
-        _selectedDutyDate = null;
-        _startTime = null;
-        _endTime = null;
-        _selectedTransport = null;
-        isRejected = false;
-        _rejectionReason = null;
-      }
+      _description = _initialDescription;
+      _employeeDuties = List<EmployeeDuty>.from(_initialEmployeeDuties);
+      _selectedApproverId = _initialApproverId;
+      _selectedDutyDate = _initialDutyDate;
+      _startTime = _initialStartTime;
+      _endTime = _initialEndTime;
+      _selectedTransport = _initialTransport;
+      isRejected = _initialIsRejected;
+      _rejectionReason = _initialRejectionReason;
+      _selectedAction = null;
     });
   }
 
-  // ========== UI BUILD WITH BOTTOM APP BAR ==========
+  /// Build each row for Employee selection with Remove button
+  Widget _buildEmployeeRow(int index) {
+    final employeeDuty = _employeeDuties[index];
+    final initialEmployeeDuty = _initialEmployeeDuties.length > index
+        ? _initialEmployeeDuties[index]
+        : EmployeeDuty(employeeId: "", employeeName: "");
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Employee Selection Row
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: employeeDuty.employeeId.isEmpty
+                        ? null
+                        : employeeDuty.employeeId,
+                    items: _employeeList.entries.map((entry) {
+                      return DropdownMenuItem<String>(
+                        value: entry.key,
+                        child: Text(entry.value),
+                      );
+                    }).toList(),
+                    onChanged: isRejected
+                        ? null
+                        : (value) {
+                            setState(() {
+                              final employeeName = _employeeList[value] ?? "";
+                              _employeeDuties[index] = EmployeeDuty(
+                                employeeId: value ?? "",
+                                employeeName: employeeName,
+                              );
+                            });
+                          },
+                    decoration: const InputDecoration(
+                      labelText: "Select Employee",
+                      border: OutlineInputBorder(),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Remove button if more than 1 row
+                if (_employeeDuties.length > 1 && !isRejected)
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle, color: Colors.redAccent),
+                    onPressed: () {
+                      setState(() {
+                        _employeeDuties.removeAt(index);
+                      });
+                    },
+                    tooltip: "Remove Employee",
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Display previous employee selection if editing and changed
+            if (isEditing &&
+                _initialEmployeeDuties.length > index &&
+                (_initialEmployeeDuties[index].employeeId.isNotEmpty &&
+                    _initialEmployeeDuties[index].employeeId !=
+                        _employeeDuties[index].employeeId))
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Previous: ${_approverList[_initialEmployeeDuties[index].employeeId] ?? "Not Set"}",
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Helper method to format time from TimeOfDay to "hh:mm a"
+  String _formatTime(TimeOfDay? time) {
+    if (time == null) return "HH:MM";
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    final format = DateFormat('hh:mm a'); //"6:00 AM"
+    return format.format(dt);
+  }
+
+  /// Helper method to parse time from "HH:mm:ss" to TimeOfDay
+  TimeOfDay? _parseTime(String time) {
+    try {
+      final parts = time.split(":");
+      if (parts.length < 2) return null;
+      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Capitalize the first letter of the status
+  String capitalize(String s) =>
+      s.isNotEmpty ? s[0].toUpperCase() + s.substring(1).toLowerCase() : s;
+
+  /// Fetch approver's name based on approverId
+  String _getApproverName(String? approverId) {
+    if (approverId == null || approverId.isEmpty) return "N/A";
+
+    // Define the approver list here or fetch from a data source
+    final List<Map<String, String>> _approverListLocal = [
+      {"id": "60001", "name": "John Doe (CEO)"},
+      {"id": "60002", "name": "Jane Smith (CFO)"},
+      {"id": "60003", "name": "Robert Brown (COO)"},
+    ];
+
+    final approver = _approverListLocal.firstWhere(
+      (element) => element["id"] == approverId,
+      orElse: () => {"id": "", "name": "Unknown Approver"},
+    );
+
+    return approver["name"]!;
+  }
+
+  /// Get dropdown items based on editing mode
+  List<DropdownMenuItem<String>> _getActionDropdownItems(bool isEditing) {
+    List<String> actions = ['Reset'];
+    if (isEditing) {
+      actions.addAll(['Update', 'Send to Approver']);
+    } else {
+      actions.addAll(['Save', 'Send to Approver']);
+    }
+
+    return actions
+        .map((action) => DropdownMenuItem<String>(
+              value: action,
+              child: Text(action),
+            ))
+        .toList();
+  }
+
+  /// Get button color based on selected action
+  Color _getButtonColor(String? action) {
+    switch (action) {
+      case 'Reset':
+        return Colors.redAccent;
+      case 'Save':
+      case 'Update':
+        return Colors.blue;
+      case 'Send to Approver':
+        return Colors.green;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  /// Add multiple employee-selection rows
+  void _addEmployeeField() {
+    setState(() {
+      _employeeDuties.add(EmployeeDuty(employeeId: "", employeeName: ""));
+    });
+  }
+
+  /// Build the Rejection Reason section
+  Widget _buildRejectionReason() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Rejection Reason:",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.red.shade700,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            (_rejectionReason?.isNotEmpty ?? false)
+                ? _rejectionReason!
+                : "No reason provided.",
+            style: const TextStyle(
+              color: Colors.red,
+              fontStyle: FontStyle.italic,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    bool isEditing = widget.dutyToEdit != null;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(isEditing ? "Edit Duty" : "Create Duty"),
@@ -400,29 +661,80 @@ class CreateDutyFormState extends State<CreateDutyForm> {
           : errorMessage != null
               ? Center(child: Text(errorMessage!))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(24.0),
                   child: Form(
                     key: _formKey,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // =========== EMPLOYEE-DESCRIPTION FIELDS ===========
-                        // Dynamic list of name/description fields
+                        // =========== DESCRIPTION FIELD ===========
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Description:",
+                            style: _labelStyle,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          initialValue: _description,
+                          onChanged: isRejected
+                              ? null
+                              : (val) {
+                                  setState(() {
+                                    _description = val;
+                                  });
+                                },
+                          decoration: const InputDecoration(
+                            labelText: "Enter Description",
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12.0, vertical: 16.0),
+                          ),
+                          maxLines: 3,
+                          enabled: !isRejected,
+                        ),
+                        // Display previous description if editing and changed
+                        if (isEditing &&
+                            _initialDescription.isNotEmpty &&
+                            (_initialDescription != _description))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                "Previous: $_initialDescription",
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 20),
+
+                        // =========== EMPLOYEE SELECTION FIELDS ===========
+                        const Text(
+                          "Employees:",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _employee.length,
+                          itemCount: _employeeDuties.length,
                           itemBuilder: (context, index) {
-                            return _buildNameDescriptionRow(index);
+                            return _buildEmployeeRow(index);
                           },
                         ),
                         const SizedBox(height: 10),
-                        // Centered "+" button to add new employee-description rows
-                        Align(
-                          alignment: Alignment.center,
+                        // Centered "+" button to add new employee-selection rows
+                        Center(
                           child: IconButton(
                             icon: const Icon(Icons.add_circle,
                                 color: Colors.teal, size: 30),
-                            onPressed: isRejected ? null : _addNameField,
+                            onPressed: isRejected ? null : _addEmployeeField,
                             tooltip: "Add Employee",
                           ),
                         ),
@@ -443,7 +755,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                           items: _approverList.entries.map((entry) {
                             return DropdownMenuItem<String>(
                               value: entry.key,
-                              child: Text("${entry.value}"),
+                              child: Text(entry.value),
                             );
                           }).toList(),
                           onChanged: isRejected
@@ -457,7 +769,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                             labelText: "Select Approver",
                             border: OutlineInputBorder(),
                             contentPadding:
-                                EdgeInsets.symmetric(horizontal: 8.0),
+                                EdgeInsets.symmetric(horizontal: 12.0),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -478,15 +790,18 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 16),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(4),
+                              border:
+                                  Border.all(color: Colors.grey.shade400),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.teal.shade50,
                             ),
                             child: Text(
                               _selectedDutyDate == null
                                   ? "Select Date"
                                   : DateFormat('dd-MM-yyyy')
                                       .format(_selectedDutyDate!),
-                              style: _inputStyle,
+                              style: _inputStyle.copyWith(
+                                  color: Colors.teal.shade800),
                             ),
                           ),
                         ),
@@ -514,17 +829,36 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 16),
                                       decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.grey),
-                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                            color: Colors.grey.shade400),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                        color: Colors.teal.shade50,
                                       ),
                                       child: Text(
                                         _startTime == null
                                             ? "HH:MM"
                                             : _formatTime(_startTime),
-                                        style: _inputStyle,
+                                        style: _inputStyle.copyWith(
+                                            color: Colors.teal.shade800),
                                       ),
                                     ),
                                   ),
+                                  // Display previous start time if editing and changed
+                                  if (isEditing &&
+                                      _initialStartTime != null &&
+                                      (_initialStartTime != _startTime))
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(top: 4.0),
+                                      child: Text(
+                                        "Previous: ${_formatTime(_initialStartTime)}",
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                            fontStyle: FontStyle.italic),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -548,17 +882,36 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 16),
                                       decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.grey),
-                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                            color: Colors.grey.shade400),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                        color: Colors.teal.shade50,
                                       ),
                                       child: Text(
                                         _endTime == null
                                             ? "HH:MM"
                                             : _formatTime(_endTime),
-                                        style: _inputStyle,
+                                        style: _inputStyle.copyWith(
+                                            color: Colors.teal.shade800),
                                       ),
                                     ),
                                   ),
+                                  // Display previous end time if editing and changed
+                                  if (isEditing &&
+                                      _initialEndTime != null &&
+                                      (_initialEndTime != _endTime))
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(top: 4.0),
+                                      child: Text(
+                                        "Previous: ${_formatTime(_initialEndTime)}",
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                            fontStyle: FontStyle.italic),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -581,7 +934,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                           items: _transportList.entries.map((entry) {
                             return DropdownMenuItem<String>(
                               value: entry.key,
-                              child: Text("${entry.value}"),
+                              child: Text(entry.value),
                             );
                           }).toList(),
                           onChanged: isRejected
@@ -595,85 +948,101 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                             labelText: "Select Transport",
                             border: OutlineInputBorder(),
                             contentPadding:
-                                EdgeInsets.symmetric(horizontal: 8.0),
+                                EdgeInsets.symmetric(horizontal: 12.0),
                           ),
                         ),
+                        // Display previous transport if editing and changed
+                        if (isEditing &&
+                            _initialTransport != null &&
+                            (_initialTransport != _selectedTransport))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                "Previous: ${_transportList[_initialTransport] ?? "Not Set"}",
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic),
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 30),
 
                         // =========== REJECTION REASON SECTION (ONLY FOR EDITING REJECTED DUTIES) ===========
                         if (isRejected)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Rejection Reason:",
-                                style: _labelStyle,
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 16),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.red),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  _rejectionReason ?? "No reason provided.",
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.red,
-                                      fontStyle: FontStyle.italic),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                            ],
-                          ),
+                          _buildRejectionReason(),
 
-                        // =========== BUTTONS ===========
+                        // =========== ACTION DROPDOWN AND SUBMIT BUTTON ===========
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Action:",
+                            style: _labelStyle,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Reset Button
-                            ElevatedButton(
-                              onPressed: isRejected ? null : _resetForm,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 12, horizontal: 20),
-                              ),
-                              child: const Text(
-                                "Reset",
-                                style: TextStyle(fontSize: 16),
+                            // Dropdown for Actions
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                value: _selectedAction,
+                                hint: const Text("Select Action"),
+                                items: _getActionDropdownItems(isEditing),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedAction = value;
+                                  });
+                                },
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding:
+                                      EdgeInsets.symmetric(horizontal: 12.0),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 20),
-                            // Save Button
-                            if (!isRejected)
-                              ElevatedButton(
-                                onPressed: _saveForm,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 12, horizontal: 20),
+                            // Submit Button
+                            ElevatedButton(
+                              onPressed: _selectedAction == null
+                                  ? null
+                                  : () {
+                                      switch (_selectedAction) {
+                                        case 'Reset':
+                                          _resetForm();
+                                          break;
+                                        case 'Save':
+                                          _saveOrUpdateForm();
+                                          break;
+                                        case 'Send to Approver':
+                                          _sendToApprover();
+                                          break;
+                                        case 'Update':
+                                          _saveOrUpdateForm();
+                                          break;
+                                        default:
+                                          break;
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _getButtonColor(_selectedAction),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 24),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Text(isEditing ? "Update" : "Save"),
                               ),
-                            if (!isRejected) const SizedBox(width: 20),
-                            // Send to Approver Button
-                            if (!isRejected)
-                              ElevatedButton(
-                                onPressed: _sendToApprover,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 12, horizontal: 20),
-                                ),
-                                child: const Text(
-                                  "Send to Approver",
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ),
+                              child: Text(_selectedAction == 'Update'
+                                  ? "Update"
+                                  : _selectedAction == 'Send to Approver'
+                                      ? "Send to Approver"
+                                      : _selectedAction == 'Reset'
+                                          ? "Reset"
+                                          : "Submit"),
+                            ),
                           ],
                         ),
                       ],
@@ -682,114 +1051,5 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                 ),
       bottomNavigationBar: const CustomBottomAppBar(),
     );
-  }
-
-  // Add multiple rows
-  void _addNameField() {
-    setState(() {
-      _employee
-          .add(EmployeeDuty(employeeId: "", employeeName: "", description: ""));
-    });
-  }
-
-  // Build each row for Name + Description
-  Widget _buildNameDescriptionRow(int index) {
-    final employeeDuty = _employee[index];
-
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Row for "Employee" selection + remove
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: employeeDuty.employeeId.isEmpty
-                        ? null
-                        : employeeDuty.employeeId,
-                    items: _employeeList.entries.map((entry) {
-                      return DropdownMenuItem<String>(
-                        value: entry.key,
-                        child: Text("${entry.value}"),
-                      );
-                    }).toList(),
-                    onChanged: isRejected
-                        ? null
-                        : (value) {
-                            setState(() {
-                              final employeeName = _employeeList[value] ?? "";
-                              _employee[index] = employeeDuty.copyWith(
-                                employeeId: value ?? "",
-                                employeeName: employeeName,
-                              );
-                            });
-                          },
-                    decoration: const InputDecoration(
-                      labelText: "Select Employee",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Remove button if more than 1 row
-                if (_employee.length > 1 && !isRejected)
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle, color: Colors.red),
-                    onPressed: () {
-                      setState(() {
-                        _employee.removeAt(index);
-                      });
-                    },
-                    tooltip: "Remove Employee",
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Description Field
-            TextFormField(
-              initialValue: employeeDuty.description,
-              onChanged: isRejected
-                  ? null
-                  : (val) {
-                      _employee[index] =
-                          employeeDuty.copyWith(description: val);
-                    },
-              decoration: const InputDecoration(
-                labelText: "Description",
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-              enabled: !isRejected,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Helper method to format time from TimeOfDay to "hh:mm a"
-  String _formatTime(TimeOfDay? time) {
-    if (time == null) return "HH:MM";
-    final now = DateTime.now();
-    final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-    final format = DateFormat('hh:mm a'); //"6:00 AM"
-    return format.format(dt);
-  }
-
-  /// Helper method to parse time from "HH:mm:ss" to TimeOfDay
-  TimeOfDay? _parseTime(String time) {
-    try {
-      final parts = time.split(":");
-      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-    } catch (e) {
-      return null;
-    }
   }
 }
