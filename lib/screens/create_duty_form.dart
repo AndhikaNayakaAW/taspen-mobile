@@ -433,8 +433,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
   /// Reset the entire form
   void _resetForm() {
     setState(() {
-      _description = _initialDescription;
       _employeeDuties = List<EmployeeDuty>.from(_initialEmployeeDuties);
+      _description = _initialDescription;
       _selectedApproverId = _initialApproverId;
       _selectedDutyDate = _initialDutyDate;
       _startTime = _initialStartTime;
@@ -522,7 +522,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    "Previous: ${_approverList[_initialEmployeeDuties[index].employeeId] ?? "Not Set"}",
+                    "Previous: ${_employeeList[_initialEmployeeDuties[index].employeeId] ?? "Not Set"}",
                     style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
@@ -667,6 +667,33 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // =========== EMPLOYEE SELECTION FIELDS ===========
+                        const Text(
+                          "Employees:",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _employeeDuties.length,
+                          itemBuilder: (context, index) {
+                            return _buildEmployeeRow(index);
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        // Centered "+" button to add new employee-selection rows
+                        Center(
+                          child: IconButton(
+                            icon: const Icon(Icons.add_circle,
+                                color: Colors.teal, size: 30),
+                            onPressed: isRejected ? null : _addEmployeeField,
+                            tooltip: "Add Employee",
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
                         // =========== DESCRIPTION FIELD ===========
                         Align(
                           alignment: Alignment.centerLeft,
@@ -711,33 +738,6 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                               ),
                             ),
                           ),
-                        const SizedBox(height: 20),
-
-                        // =========== EMPLOYEE SELECTION FIELDS ===========
-                        const Text(
-                          "Employees:",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _employeeDuties.length,
-                          itemBuilder: (context, index) {
-                            return _buildEmployeeRow(index);
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        // Centered "+" button to add new employee-selection rows
-                        Center(
-                          child: IconButton(
-                            icon: const Icon(Icons.add_circle,
-                                color: Colors.teal, size: 30),
-                            onPressed: isRejected ? null : _addEmployeeField,
-                            tooltip: "Add Employee",
-                          ),
-                        ),
                         const SizedBox(height: 20),
 
                         // =========== APPROVER SECTION ===========
@@ -790,8 +790,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 16),
                             decoration: BoxDecoration(
-                              border:
-                                  Border.all(color: Colors.grey.shade400),
+                              border: Border.all(color: Colors.grey.shade400),
                               borderRadius: BorderRadius.circular(8),
                               color: Colors.teal.shade50,
                             ),
@@ -829,10 +828,9 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 16),
                                       decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: Colors.grey.shade400),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
+                                        border:
+                                            Border.all(color: Colors.grey.shade400),
+                                        borderRadius: BorderRadius.circular(8),
                                         color: Colors.teal.shade50,
                                       ),
                                       child: Text(
@@ -849,8 +847,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                       _initialStartTime != null &&
                                       (_initialStartTime != _startTime))
                                     Padding(
-                                      padding:
-                                          const EdgeInsets.only(top: 4.0),
+                                      padding: const EdgeInsets.only(top: 4.0),
                                       child: Text(
                                         "Previous: ${_formatTime(_initialStartTime)}",
                                         style: const TextStyle(
@@ -882,10 +879,9 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 16),
                                       decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: Colors.grey.shade400),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
+                                        border:
+                                            Border.all(color: Colors.grey.shade400),
+                                        borderRadius: BorderRadius.circular(8),
                                         color: Colors.teal.shade50,
                                       ),
                                       child: Text(
@@ -902,8 +898,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                       _initialEndTime != null &&
                                       (_initialEndTime != _endTime))
                                     Padding(
-                                      padding:
-                                          const EdgeInsets.only(top: 4.0),
+                                      padding: const EdgeInsets.only(top: 4.0),
                                       child: Text(
                                         "Previous: ${_formatTime(_initialEndTime)}",
                                         style: const TextStyle(
@@ -1015,13 +1010,11 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                           _resetForm();
                                           break;
                                         case 'Save':
+                                        case 'Update':
                                           _saveOrUpdateForm();
                                           break;
                                         case 'Send to Approver':
                                           _sendToApprover();
-                                          break;
-                                        case 'Update':
-                                          _saveOrUpdateForm();
                                           break;
                                         default:
                                           break;
