@@ -1,3 +1,4 @@
+//lib/services/auth_service.dart
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -17,4 +18,3 @@ class AuthService {
     }
   }
 }
-

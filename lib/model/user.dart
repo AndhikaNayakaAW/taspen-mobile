@@ -9,6 +9,7 @@ class User {
   final String unitKerja;
   final String kodeJabatan;
   final String perty;
+  final String username;
 
   User({
     required this.nik,
@@ -19,6 +20,7 @@ class User {
     required this.unitKerja,
     required this.kodeJabatan,
     required this.perty,
+    required this.username,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,7 @@ class User {
       unitKerja: json['UNITKERJA'] as String,
       kodeJabatan: json['KODEJABATAN'] as String,
       perty: json['PERTY'] as String,
+      username: json['USERNAME'] ?? '',
     );
   }
 
@@ -44,6 +47,7 @@ class User {
       'UNITKERJA': unitKerja,
       'KODEJABATAN': kodeJabatan,
       'PERTY': perty,
+      'USERNAME': username,
     };
   }
 }

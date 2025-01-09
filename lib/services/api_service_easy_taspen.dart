@@ -145,4 +145,60 @@ class ApiService {
       throw Exception('Error: $e');
     }
   }
+
+  // Metode untuk menyimpan Duty (Store Duty)
+  Future<BaseResponse<String>> storeDuty({
+    required String wktMulai,
+    required String wktSelesai,
+    required String tglTugas,
+    required String keterangan,
+    required int kendaraan,
+    required List<String> employee,
+    required String nik,
+    required String username,
+    required String approver,
+    required String submit,
+  }) async {
+    final url = Uri.parse('$baseUrl/devops-easy/src/public/api/duty/store');
+
+    // Membuat payload JSON
+    Map<String, dynamic> payload = {
+      "wkt_mulai": wktMulai,
+      "wkt_selesai": wktSelesai,
+      "tgl_tugas": tglTugas,
+      "keterangan": keterangan,
+      "kendaraan": kendaraan,
+      "employee": { for (int i = 0; i < employee.length; i++) '$i' : employee[i] },
+      "nik": nik,
+      "username": username,
+      "approver": approver,
+      "submit": submit,
+    };
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseBody = jsonDecode(response.body);
+
+        if (responseBody['metadata']['code'] == 200) {
+          return BaseResponse<String>.fromJson(
+              responseBody, (data) => data['response'] as String);
+        } else {
+          throw Exception(
+              responseBody['metadata']['message'] ?? 'Failed to store duty.');
+        }
+      } else {
+        throw Exception('Failed to store duty: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error storing duty: $e');
+    }
+  }
 }

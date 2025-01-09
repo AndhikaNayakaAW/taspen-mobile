@@ -245,120 +245,132 @@ class CreateDutyFormState extends State<CreateDutyForm> {
   }
 
   /// Save as Draft or Update
-  void _saveOrUpdateForm() {
+  void _saveOrUpdateForm() async {
     // Validate form before saving
     if (_validateForm()) {
-      Duty dutyData = Duty(
-        id: widget.dutyToEdit != null
-            ? widget.dutyToEdit!.id
-            : (widget.duties.isNotEmpty
-                ? widget.duties.map((d) => d.id).reduce((a, b) => a > b ? a : b) + 1
-                : 1),
-        description: _description,
-        dutyDate: _selectedDutyDate ?? DateTime.now(),
-        status: widget.dutyToEdit != null ? widget.dutyToEdit!.status : "Draft",
-        startTime: _startTime == null
-            ? "09:00:00"
-            : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
-        endTime: _endTime == null
-            ? "17:00:00"
-            : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
-        transport: _selectedTransport ?? "Personal",
-        sptNumber: null, // Assign as needed
-        sptLetterNumber: null, // Assign as needed
-        dateCreated: widget.dutyToEdit?.dateCreated ?? DateTime.now(),
-        createdAt: widget.dutyToEdit?.createdAt ?? DateTime.now(),
-        updatedAt: DateTime.now(),
-        sapStatus: null,
-        sapError: null,
-        rejectionReason: null,
-        createdBy: "andhika.nayaka", // Replace with actual user
-        approverId: _selectedApproverId,
-        employee: _employeeDuties,
-      );
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
 
-      if (widget.dutyToEdit != null) {
-        // Editing mode: Update existing duty based on 'id'
-        int index = widget.duties.indexWhere((duty) => duty.id == widget.dutyToEdit!.id);
-        if (index != -1) {
-          setState(() {
-            widget.duties[index] = dutyData;
-          });
+      try {
+        // Ambil informasi pengguna yang sedang login
+        User user = await _authService.loadUserInfo();
+
+        // Persiapkan data untuk dikirim ke API
+        final response = await _apiService.storeDuty(
+          wktMulai: _startTime != null
+              ? "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}"
+              : "09:00",
+          wktSelesai: _endTime != null
+              ? "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}"
+              : "17:00",
+          tglTugas: _selectedDutyDate != null
+              ? DateFormat('yyyy-MM-dd').format(_selectedDutyDate!)
+              : DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          keterangan: _description,
+          kendaraan: int.tryParse(_selectedTransport ?? '0') ?? 0,
+          employee: _employeeDuties
+              .map((e) => e.employeeId)
+              .where((id) => id.isNotEmpty)
+              .toList(),
+          nik: user.nik,
+          username: user.username,
+          approver: _selectedApproverId ?? '',
+          submit: 'save', // 'save' untuk menyimpan draft
+        );
+
+        if (response.metadata.code == 200) {
+          // Berhasil menyimpan draft
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.response ?? 'Draft saved successfully.')),
+          );
+
+          // Anda dapat menambahkan logika tambahan di sini, seperti navigasi atau memperbarui UI
+          Navigator.pop(context, 'saved');
+        } else {
+          // Gagal menyimpan draft
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.metadata.message ?? 'Failed to save draft.')),
+          );
         }
-      } else {
-        // Creating mode: Add new duty
+      } catch (e) {
         setState(() {
-          widget.duties.add(dutyData);
+          errorMessage = e.toString().replaceFirst('Exception: ', '');
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage ?? 'An error occurred.')),
+        );
+      } finally {
+        setState(() {
+          isLoading = false;
         });
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(widget.dutyToEdit != null
-                ? "Duty Updated! (Draft)"
-                : "Duty Form Saved! (Draft)")),
-      );
-
-      Navigator.pop(context, widget.dutyToEdit != null ? 'updated' : 'saved');
     }
   }
 
   /// Send to Approver -> status=Waiting
-  void _sendToApprover() {
+  void _sendToApprover() async {
     // Validate form before sending
     if (_validateForm()) {
-      Duty dutyData = Duty(
-        id: widget.dutyToEdit != null
-            ? widget.dutyToEdit!.id
-            : (widget.duties.isNotEmpty
-                ? widget.duties.map((d) => d.id).reduce((a, b) => a > b ? a : b) + 1
-                : 1),
-        description: _description,
-        dutyDate: _selectedDutyDate ?? DateTime.now(),
-        status: "Waiting",
-        startTime: _startTime == null
-            ? "09:00:00"
-            : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
-        endTime: _endTime == null
-            ? "17:00:00"
-            : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
-        transport: _selectedTransport ?? "Personal",
-        sptNumber: null, // Assign as needed
-        sptLetterNumber: null, // Assign as needed
-        dateCreated: widget.dutyToEdit?.dateCreated ?? DateTime.now(),
-        createdAt: widget.dutyToEdit?.createdAt ?? DateTime.now(),
-        updatedAt: DateTime.now(),
-        sapStatus: null,
-        sapError: null,
-        rejectionReason: null,
-        createdBy: "andhika.nayaka", // Replace with actual user
-        approverId: _selectedApproverId,
-        employee: _employeeDuties,
-      );
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
 
-      if (widget.dutyToEdit != null) {
-        // Editing mode: Update existing duty based on 'id'
-        int index = widget.duties.indexWhere((duty) => duty.id == widget.dutyToEdit!.id);
-        if (index != -1) {
-          setState(() {
-            widget.duties[index] = dutyData;
-          });
+      try {
+        // Ambil informasi pengguna yang sedang login
+        User user = await _authService.loadUserInfo();
+
+        // Persiapkan data untuk dikirim ke API
+        final response = await _apiService.storeDuty(
+          wktMulai: _startTime != null
+              ? "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}"
+              : "09:00",
+          wktSelesai: _endTime != null
+              ? "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}"
+              : "17:00",
+          tglTugas: _selectedDutyDate != null
+              ? DateFormat('yyyy-MM-dd').format(_selectedDutyDate!)
+              : DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          keterangan: _description,
+          kendaraan: int.tryParse(_selectedTransport ?? '0') ?? 0,
+          employee: _employeeDuties
+              .map((e) => e.employeeId)
+              .where((id) => id.isNotEmpty)
+              .toList(),
+          nik: user.nik,
+          username: user.username,
+          approver: _selectedApproverId ?? '',
+          submit: 'submit', // 'submit' untuk mengirim ke approver
+        );
+
+        if (response.metadata.code == 200) {
+          // Berhasil mengirim ke approver
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.response ?? 'Duty sent to approver successfully.')),
+          );
+
+          // Anda dapat menambahkan logika tambahan di sini, seperti navigasi atau memperbarui UI
+          Navigator.pop(context, 'sent');
+        } else {
+          // Gagal mengirim ke approver
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.metadata.message ?? 'Failed to send to approver.')),
+          );
         }
-      } else {
-        // Creating mode: Add new duty
+      } catch (e) {
         setState(() {
-          widget.duties.add(dutyData);
+          errorMessage = e.toString().replaceFirst('Exception: ', '');
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage ?? 'An error occurred.')),
+        );
+      } finally {
+        setState(() {
+          isLoading = false;
         });
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(widget.dutyToEdit != null
-                ? "Duty Updated! (Waiting)"
-                : "Duty Form Sent to Approver! (Waiting)")),
-      );
-
-      Navigator.pop(context, 'sent'); // Pass 'sent' as result
     }
   }
 
@@ -799,8 +811,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                   ? "Select Date"
                                   : DateFormat('dd-MM-yyyy')
                                       .format(_selectedDutyDate!),
-                              style: _inputStyle.copyWith(
-                                  color: Colors.teal.shade800),
+                              style:
+                                  _inputStyle.copyWith(color: Colors.teal.shade800),
                             ),
                           ),
                         ),
@@ -1002,7 +1014,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                             const SizedBox(width: 20),
                             // Submit Button
                             ElevatedButton(
-                              onPressed: _selectedAction == null
+                              onPressed: _selectedAction == null || isLoading
                                   ? null
                                   : () {
                                       switch (_selectedAction) {
@@ -1028,13 +1040,22 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: Text(_selectedAction == 'Update'
-                                  ? "Update"
-                                  : _selectedAction == 'Send to Approver'
-                                      ? "Send to Approver"
-                                      : _selectedAction == 'Reset'
-                                          ? "Reset"
-                                          : "Submit"),
+                              child: isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(_selectedAction == 'Update'
+                                      ? "Update"
+                                      : _selectedAction == 'Send to Approver'
+                                          ? "Send to Approver"
+                                          : _selectedAction == 'Reset'
+                                              ? "Reset"
+                                              : "Submit"),
                             ),
                           ],
                         ),
