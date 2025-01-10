@@ -6,6 +6,10 @@ import 'create_duty_form.dart'; // We'll use this for "edit" button if Draft or 
 import 'main_screen.dart';
 import 'paidleave_cuti_screen.dart';
 import 'package:intl/intl.dart'; // Import intl for date formatting
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
+import 'dart:typed_data'; // Import for Uint8List
 
 class DutyDetailScreen extends StatefulWidget {
   final Duty duty;
@@ -62,6 +66,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
   }
 
   // ========== ACTION HANDLERS ==========
+
   void _onEdit() async {
     // Navigate to CreateDutyForm with the duty to edit
     final result = await Navigator.push(
@@ -174,12 +179,159 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     );
   }
 
-  void _onPrint() {
-    final status = _currentDuty.status;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Print Duty (status = $status) - dummy!")),
+  void _onPrint() async {
+    try {
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => await _generatePdf(format),
+      );
+    } catch (e) {
+      // Handle any errors during PDF generation or printing
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to generate PDF: $e")),
+      );
+    }
+  }
+
+  Future<Uint8List> _generatePdf(PdfPageFormat format) async {
+    final pdf = pw.Document();
+
+    final duty = _currentDuty;
+    final approverName = _getApproverName(duty.approverId);
+    final createdBy = duty.createdBy ?? "Unknown";
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: format,
+        build: (pw.Context context) {
+          return pw.Padding(
+            padding: pw.EdgeInsets.all(24),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Duty Details',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  'Description: ${duty.description ?? "No Description"}',
+                  style: pw.TextStyle(fontSize: 18),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  'Date: ${_formatDate(duty.dutyDate.toIso8601String())}',
+                  style: pw.TextStyle(fontSize: 16),
+                ),
+                pw.Text(
+                  'Time: ${_formatTime(duty.startTime)} - ${_formatTime(duty.endTime)}',
+                  style: pw.TextStyle(fontSize: 16),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Divider(),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  'Created:',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey700,
+                    fontSize: 16,
+                  ),
+                ),
+                pw.Text(
+                  _createdAt,
+                  style: pw.TextStyle(fontSize: 14),
+                ),
+                pw.SizedBox(height: 16),
+                pw.Text(
+                  'Modified:',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey700,
+                    fontSize: 16,
+                  ),
+                ),
+                pw.Text(
+                  _modifiedAt,
+                  style: pw.TextStyle(fontSize: 14),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Divider(),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  'Created By:',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                pw.Text(
+                  'Name: $createdBy',
+                  style: pw.TextStyle(fontSize: 16),
+                ),
+                pw.Text(
+                  'NIK: 4163 (dummy)',
+                  style: pw.TextStyle(fontSize: 16),
+                ),
+                pw.Text(
+                  'Position: Application Support Staff',
+                  style: pw.TextStyle(fontSize: 16),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Divider(),
+                pw.SizedBox(height: 20),
+                pw.Text(
+                  'Approver:',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                pw.Text(
+                  'Name: $approverName',
+                  style: pw.TextStyle(fontSize: 16),
+                ),
+                pw.Text(
+                  'NIK: 3713',
+                  style: pw.TextStyle(fontSize: 16),
+                ),
+                pw.Text(
+                  'Position: Senior Programmer',
+                  style: pw.TextStyle(fontSize: 16),
+                ),
+                if (isRejected) ...[
+                  pw.SizedBox(height: 20),
+                  pw.Divider(),
+                  pw.SizedBox(height: 20),
+                  pw.Text(
+                    'Rejection Reason:',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.red700,
+                      fontSize: 16,
+                    ),
+                  ),
+                  pw.Text(
+                    _rejectionReason.isNotEmpty
+                        ? _rejectionReason
+                        : "No reason provided.",
+                    style: pw.TextStyle(
+                      color: PdfColors.red,
+                      fontStyle: pw.FontStyle.italic,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
     );
-    // Implement actual print functionality here if needed
+
+    return pdf.save();
   }
 
   @override
@@ -207,7 +359,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                         label: const Text("Edit Duty Form"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16),
                           textStyle: const TextStyle(fontSize: 16),
                         ),
                         onPressed: _onEdit,
@@ -218,7 +371,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                         label: const Text("Home"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16),
                           textStyle: const TextStyle(fontSize: 16),
                         ),
                         onPressed: () {
@@ -238,7 +392,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                         label: const Text("Paid Leave (Cuti)"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16),
                           textStyle: const TextStyle(fontSize: 16),
                         ),
                         onPressed: () {
@@ -284,7 +439,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     final endTimeStr = duty.endTime;
 
     // If createdBy or user info is not set, let's default to "Unknown"
-    final createdBy = duty.createdBy;
+    final createdBy = duty.createdBy ?? "Unknown";
     final approverName = _getApproverName(duty.approverId); // Fetch dynamically based on approverId
 
     // We'll parse status and format dates
@@ -426,8 +581,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                 const SizedBox(height: 20),
 
                 // Created By Section
-                const Row(
-                  children: [
+                Row(
+                  children: const [
                     Icon(Icons.person, color: Colors.teal),
                     SizedBox(width: 8),
                     Text(
@@ -455,8 +610,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                 const SizedBox(height: 20),
 
                 // Approver Section
-                const Row(
-                  children: [
+                Row(
+                  children: const [
                     Icon(Icons.approval, color: Colors.teal),
                     SizedBox(width: 8),
                     Text(
@@ -605,7 +760,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
           label: Text("Print (${capitalize(status)})"),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.teal,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            padding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             textStyle: const TextStyle(fontSize: 16),
           ),
           onPressed: _onPrint,
@@ -659,7 +815,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
           label: Text("Print (${capitalize(status)})"),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.teal,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            padding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             textStyle: const TextStyle(fontSize: 16),
           ),
           onPressed: _onPrint,
