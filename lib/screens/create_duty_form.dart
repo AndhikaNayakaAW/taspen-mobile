@@ -129,12 +129,11 @@ class CreateDutyFormState extends State<CreateDutyForm> {
           // If editing an existing duty, populate the form with its data
           if (widget.dutyToEdit != null) {
             final duty = widget.dutyToEdit!;
-            isRejected = duty.status!.toLowerCase() == "rejected";
+            isRejected = duty.status.desc.toLowerCase() == "rejected";
             _description = duty.description ?? "";
 
-            _selectedApproverId = widget.approvalToEdit != null
-                ? widget.approvalToEdit!.id.toString()
-                : '';
+            _selectedApproverId = widget.approvalToEdit?.nik;
+
             _selectedDutyDate = duty.dutyDate;
             _startTime = _parseTime(duty.startTime);
             _endTime = _parseTime(duty.endTime);
@@ -409,15 +408,12 @@ class CreateDutyFormState extends State<CreateDutyForm> {
           if (response.metadata.code == 200) {
             // Successfully sent duty to approver
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text(response.response ??
-                      'Duty sent to approver successfully.')),
+              SnackBar(content: Text(response.response)),
             );
             Navigator.pop(context, 'sent');
           } else {
             // Failed to send duty to approver
-            throw Exception(response.metadata.message ??
-                'Failed to send duty to approver.');
+            throw Exception(response.metadata.message);
           }
         }
       } catch (e) {

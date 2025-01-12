@@ -10,7 +10,7 @@ class BaseResponse<T> {
   });
 
   factory BaseResponse.fromJson(
-      Map<String, dynamic> json, T Function(Map<String, dynamic>) fromJsonT) {
+      Map<String, dynamic> json, T Function(dynamic) fromJsonT) {
     return BaseResponse(
       metadata: Metadata.fromJson(json['metadata']),
       response: fromJsonT(json['response']),

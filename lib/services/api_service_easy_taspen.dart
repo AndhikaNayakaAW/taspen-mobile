@@ -28,13 +28,12 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = jsonDecode(response.body);
-
+        Map<String, dynamic> responseBody = jsonDecode(response.body);
         // Ensure 'status' key exists in the response
         if (!responseBody.containsKey('status')) {
           throw Exception('Invalid response structure: Missing "status" key.');
         }
-
+        responseBody['status']['USERNAME'] = username;
         return LoginResponse.fromJson(responseBody);
       } else {
         // Extract error message from response if available
@@ -75,7 +74,7 @@ class ApiService {
 
         if (responseBody['metadata']['code'] == 200) {
           return BaseResponse<GetDutyList>.fromJson(
-              responseBody, GetDutyList.fromJson);
+              responseBody, (dynamic json) => GetDutyList.fromJson(json));
         } else {
           throw Exception(
               responseBody['metadata']['message'] ?? 'Failed to fetch duties.');
@@ -107,7 +106,7 @@ class ApiService {
 
         if (responseBody['metadata']['code'] == 200) {
           return BaseResponse<GetDutyDetail>.fromJson(
-              responseBody, GetDutyDetail.fromJson);
+              responseBody, (dynamic json) => GetDutyDetail.fromJson(json));
         } else {
           throw Exception(
               responseBody['metadata']['message'] ?? 'Failed to fetch duties.');
@@ -144,8 +143,8 @@ class ApiService {
         final Map<String, dynamic> responseBody = jsonDecode(response.body);
 
         if (responseBody['metadata']['code'] == 200) {
-          return BaseResponse<CreateDutyResponse>.fromJson(
-              responseBody, CreateDutyResponse.fromJson);
+          return BaseResponse<CreateDutyResponse>.fromJson(responseBody,
+              (dynamic json) => CreateDutyResponse.fromJson(json));
         } else {
           throw Exception(
               responseBody['metadata']['message'] ?? 'Failed to create duty.');
@@ -250,7 +249,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        return jsonResponse['response'];
+        return BaseResponse<String>.fromJson(
+            jsonResponse, (data) => data as String);
       } else {
         throw Exception('Failed to store duty: ${response.statusCode}');
       }
@@ -275,7 +275,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        return jsonResponse['response'];
+        return BaseResponse<String>.fromJson(
+            jsonResponse, (data) => data as String);
       } else {
         throw Exception('Failed to store duty: ${response.statusCode}');
       }

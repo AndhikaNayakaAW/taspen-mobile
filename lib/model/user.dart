@@ -9,7 +9,7 @@ class User {
   final String unitKerja;
   final String kodeJabatan;
   final String perty;
-  final String username;
+  String username;
 
   User({
     required this.nik,
