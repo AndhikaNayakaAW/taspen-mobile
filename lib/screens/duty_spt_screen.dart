@@ -137,9 +137,10 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   void filterDuties() {
     setState(() {
       filteredDuties = duties.where((duty) {
-        bool matchesRole = selectedRole == "conceptor/maker"
-            ? _isConceptorMakerDuty(duty)
-            : _isApprovalDuty(duty);
+        // bool matchesRole = selectedRole == "conceptor/maker"
+        //     ? _isConceptorMakerDuty(duty)
+        //     : _isApprovalDuty(duty);
+        bool matchesRole = true; // Always true for now
 
         bool matchesSearch = duty.description
                 ?.toLowerCase()
@@ -148,7 +149,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
         bool matchesStatus = selectedStatus == "All"
             ? true
-            : duty.status!.toLowerCase() == selectedStatus.toLowerCase();
+            : duty.status.desc.toLowerCase() ==
+                selectedStatus.toLowerCase();
 
         bool matchesStartDate = filterStartDate == null
             ? true
@@ -1400,7 +1402,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                 padding:
                     const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                 child: Text(
-                  duty.status!,
+                  duty.status.desc,
                   style: TextStyle(
                       color: statusColor,
                       fontWeight: FontWeight.bold,
@@ -1562,7 +1564,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                     padding:
                         const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                     child: Text(
-                      duty.status ?? "",
+                      duty.status.desc,
                       style: TextStyle(
                           color: statusColor,
                           fontWeight: FontWeight.bold,

@@ -1,5 +1,6 @@
 // lib/model/duty.dart
 import 'employee_duty.dart';
+import 'duty_status.dart'; // Import the DutyStatus enum
 
 class Duty {
   final int id;
@@ -13,7 +14,7 @@ class Duty {
   final DateTime? dateCreated;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final String? status;
+  final DutyStatus status;
   final String? sapStatus;
   final String? sapError;
 
@@ -29,7 +30,7 @@ class Duty {
     this.dateCreated,
     required this.createdAt,
     required this.updatedAt,
-    this.status,
+    required this.status,
     this.sapStatus,
     this.sapError,
   });
@@ -41,6 +42,7 @@ class Duty {
             json['duty_description'].containsKey('keterangan')
         ? json['duty_description']['keterangan']
         : json['keterangan'];
+
     return Duty(
       id: json['id'] as int,
       startTime: _formatTime(json['wkt_mulai']),
@@ -55,7 +57,7 @@ class Duty {
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
-      status: json['status'] as String?,
+      status: DutyStatus.fromCode(json['status']), // Updated
       sapStatus: json['status_sap'] as String?,
       sapError: json['error_sap'] as String?,
     );
@@ -75,7 +77,7 @@ class Duty {
       'date_created': dateCreated?.toIso8601String().split('T').first,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
-      'status': status,
+      'status': status.code, // Serialize using the code
       'status_sap': sapStatus,
       'error_sap': sapError
     };
@@ -83,7 +85,7 @@ class Duty {
 
   @override
   String toString() {
-    return 'Duty(id: $id, startTime: $startTime, endTime: $endTime, dutyDate: $dutyDate, description: $description, transport: $transport, sptNumber: $sptNumber, sptLetterNumber: $sptLetterNumber, dateCreated: $dateCreated, createdAt: $createdAt, updatedAt: $updatedAt, status: $status, sapStatus: $sapStatus, sapError: $sapError)';
+    return 'Duty(id: $id, startTime: $startTime, endTime: $endTime, dutyDate: $dutyDate, description: $description, transport: $transport, sptNumber: $sptNumber, sptLetterNumber: $sptLetterNumber, dateCreated: $dateCreated, createdAt: $createdAt, updatedAt: $updatedAt, status: ${status?.desc}, sapStatus: $sapStatus, sapError: $sapError)';
   }
 
   /// Creates a copy of the current Duty with optional new values.
@@ -99,7 +101,7 @@ class Duty {
     DateTime? dateCreated,
     DateTime? createdAt,
     DateTime? updatedAt,
-    String? status,
+    DutyStatus? status, // Updated
     String? sapStatus,
     String? sapError,
     String? rejectionReason,
@@ -108,20 +110,21 @@ class Duty {
     List<EmployeeDuty>? employee,
   }) {
     return Duty(
-        id: id ?? this.id,
-        startTime: startTime ?? this.startTime,
-        endTime: endTime ?? this.endTime,
-        dutyDate: dutyDate ?? this.dutyDate,
-        description: description ?? this.description,
-        transport: transport ?? this.transport,
-        sptNumber: sptNumber ?? this.sptNumber,
-        sptLetterNumber: sptLetterNumber ?? this.sptLetterNumber,
-        dateCreated: dateCreated ?? this.dateCreated,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-        status: status ?? this.status,
-        sapStatus: sapStatus ?? this.sapStatus,
-        sapError: sapError ?? this.sapError);
+      id: id ?? this.id,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      dutyDate: dutyDate ?? this.dutyDate,
+      description: description ?? this.description,
+      transport: transport ?? this.transport,
+      sptNumber: sptNumber ?? this.sptNumber,
+      sptLetterNumber: sptLetterNumber ?? this.sptLetterNumber,
+      dateCreated: dateCreated ?? this.dateCreated,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      status: status ?? this.status, // Updated
+      sapStatus: sapStatus ?? this.sapStatus,
+      sapError: sapError ?? this.sapError,
+    );
   }
 
   /// Helper method to ensure time is in HH:mm:ss format
@@ -136,4 +139,7 @@ class Duty {
     }
     return '00:00:00'; // Default value if format is unexpected
   }
+
+  /// Getter to retrieve the status description
+  String get statusDescription => status.desc;
 }

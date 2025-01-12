@@ -59,8 +59,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
         return DutyDetailData(user: user, dutyDetail: dutyDetail);
       } else {
         // Handle the case where the API call was not successful
-        throw Exception(
-            apiResponse.metadata.message ?? 'Failed to fetch duty details.');
+        throw Exception(apiResponse.metadata.message);
       }
     } catch (e) {
       throw Exception('Error fetching data: $e');
@@ -304,7 +303,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                   'Position: Senior Programmer',
                   style: pw.TextStyle(fontSize: 16),
                 ),
-                if (duty.status!.toLowerCase() == "rejected") ...[
+                if (duty.status.desc.toLowerCase() == "rejected") ...[
                   pw.SizedBox(height: 20),
                   pw.Divider(),
                   pw.SizedBox(height: 20),
@@ -529,7 +528,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     bool isMobile = false,
   }) {
     final String description = duty.description ?? "No Description";
-    final String status = duty.status!;
+    final String status = duty.status.desc;
     final String dateStr = duty.dutyDate.toIso8601String();
     final String startTimeStr = duty.startTime;
     final String endTimeStr = duty.endTime;
@@ -779,7 +778,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     required String rejectionReason,
     required DutyDetailData dutyDetailData,
   }) {
-    String status = duty.status!;
+    String status = duty.status.desc;
     Color statusColor = Colors.grey;
     if (status.toLowerCase() == "approved")
       statusColor = Colors.green;
