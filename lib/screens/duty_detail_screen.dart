@@ -1,24 +1,31 @@
 // lib/screens/duty_detail_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:mobileapp/dto/get_duty_detail.dart';
+import 'package:mobileapp/dto/duty_detail_data.dart';
+import 'package:mobileapp/dto/base_response.dart';
 import 'package:mobileapp/model/duty.dart';
-import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
-import 'create_duty_form.dart'; // We'll use this for "edit" button if Draft or Returned
+import 'package:mobileapp/model/user.dart';
+import 'package:mobileapp/model/approval.dart';
+import 'package:mobileapp/services/api_service_easy_taspen.dart';
+import 'package:mobileapp/services/auth_service.dart';
+import '../widgets/custom_bottom_app_bar.dart';
+import 'create_duty_form.dart';
 import 'main_screen.dart';
 import 'paidleave_cuti_screen.dart';
-import 'package:intl/intl.dart'; // Import intl for date formatting
+import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
-import 'dart:typed_data'; // Import for Uint8List
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 
 class DutyDetailScreen extends StatefulWidget {
-  final Duty duty;
-  final List<Duty> allDuties;
+  final int dutyId;
 
   const DutyDetailScreen({
     super.key,
-    required this.duty,
-    required this.allDuties,
+    required this.dutyId,
   });
 
   @override
@@ -26,121 +33,93 @@ class DutyDetailScreen extends StatefulWidget {
 }
 
 class _DutyDetailScreenState extends State<DutyDetailScreen> {
-  late Duty _currentDuty; // Mutable copy of a duty
+  late Future<DutyDetailData> _dutyDetailDataFuture;
 
-  // Updated to dynamically set the created and modified times
-  late String _createdAt;
-  late String _modifiedAt;
-  late String _status;
-  late String _rejectionReason;
-
-  // Flags to determine the status
-  bool isDraft = false;
-  bool isWaiting = false;
-  bool isApproved = false;
-  bool isReturned = false;
-  bool isRejected = false;
+  final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    // Initialize _currentDuty with the duty passed to the widget
-    _currentDuty = widget.duty;
-
-    // Initialize createdAt and modifiedAt based on existing data or current time
-    _createdAt =
-        DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.createdAt);
-    _modifiedAt =
-        DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.updatedAt);
-
-    _status = _currentDuty.status.toLowerCase();
-
-    // Determine the status flags
-    isDraft = _status == "draft";
-    isWaiting = _status == "waiting";
-    isApproved = _status == "approved";
-    isReturned = _status == "returned";
-    isRejected = _status == "rejected";
-
-    _rejectionReason = _currentDuty.rejectionReason ?? "";
+    _dutyDetailDataFuture = fetchDutyDetailData(widget.dutyId);
   }
 
-  // ========== ACTION HANDLERS ==========
+  Future<DutyDetailData> fetchDutyDetailData(int dutyId) async {
+    try {
+      // Fetch User Information
+      User user = await _authService.loadUserInfo();
 
-  void _onEdit() async {
+      // Fetch Duty Detail from API
+      BaseResponse<GetDutyDetail> apiResponse =
+          await _apiService.fetchDutyDetailById(dutyId, user.nik);
+
+      // Check if the API call was successful and response is not null
+      if (apiResponse.metadata.code == 200) {
+        GetDutyDetail dutyDetail = apiResponse.response!;
+        return DutyDetailData(user: user, dutyDetail: dutyDetail);
+      } else {
+        // Handle the case where the API call was not successful
+        throw Exception(
+            apiResponse.metadata.message ?? 'Failed to fetch duty details.');
+      }
+    } catch (e) {
+      throw Exception('Error fetching data: $e');
+    }
+  }
+
+  // Action Handlers
+  void _onEdit(Duty duty) async {
     // Navigate to CreateDutyForm with the duty to edit
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => CreateDutyForm(
-          duties: widget.allDuties,
-          dutyToEdit: _currentDuty, // Pass the duty to edit
+          dutyToEdit: duty,
         ),
       ),
     );
 
     if (result != null) {
-      if (result == 'sent' || result == 'updated') {
-        // After sending or updating, navigate back to Duty List Screen
-        Navigator.pop(context); // Pop DutyDetailScreen to go back to DutySPTScreen
-      } else if (result == 'saved') {
-        // After saving/updating as draft, refresh the detail screen
+      if (result == 'sent' || result == 'updated' || result == 'saved') {
+        // After any action, refetch the duty details
         setState(() {
-          // Refresh the createdAt and modifiedAt in case they were updated
-          _createdAt =
-              DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.createdAt);
-          _modifiedAt =
-              DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.updatedAt);
-          _status = _currentDuty.status.toLowerCase();
-          isDraft = _status == "draft";
-          isWaiting = _status == "waiting";
-          isApproved = _status == "approved";
-          isReturned = _status == "returned";
-          isRejected = _status == "rejected";
-          _rejectionReason = _currentDuty.rejectionReason ?? "";
+          _dutyDetailDataFuture = fetchDutyDetailData(widget.dutyId);
         });
       }
     }
   }
 
-  void _onSend() {
-    // Update the duty status to "Waiting"
-    Duty updatedDuty = _currentDuty.copyWith(
-      status: "Waiting",
-      updatedAt: DateTime.now(),
-      rejectionReason: null, // Clear rejection reason if any
-    );
+  void _onSend(Duty duty) async {
+    // Implement the send functionality
+    final String url =
+        'http://easy-route-easy.apps.dev.taspen.co.id/api/no_token/duty/${duty.id}/send';
 
-    // Replace the old duty with the updated one in allDuties
-    int index =
-        widget.allDuties.indexWhere((duty) => duty.id == _currentDuty.id);
-    if (index != -1) {
-      setState(() {
-        widget.allDuties[index] = updatedDuty;
-        _currentDuty = updatedDuty; // Update the mutable duty reference
-        // Update state variables
-        _modifiedAt =
-            DateFormat('MMM dd, yyyy hh:mm a').format(_currentDuty.updatedAt);
-        _status = _currentDuty.status.toLowerCase();
-        isDraft = _status == "draft";
-        isWaiting = _status == "waiting";
-        isApproved = _status == "approved";
-        isReturned = _status == "returned";
-        isRejected = _status == "rejected";
-        _rejectionReason = _currentDuty.rejectionReason ?? "";
-      });
+    try {
+      final response = await http.post(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        // Successfully sent, refetch duty details
+        setState(() {
+          _dutyDetailDataFuture = fetchDutyDetailData(widget.dutyId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Duty Sent! Status=Waiting")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  "Failed to send duty. Status Code: ${response.statusCode}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error sending duty: $e")),
+      );
     }
-
-    // Show confirmation SnackBar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Duty Sent! Status=Waiting")),
-    );
-
-    // Navigate back to DutySPTScreen
-    Navigator.pop(context);
   }
 
-  void _onDelete() {
+  void _onDelete(Duty duty) async {
     // Confirm deletion with the user
     showDialog(
       context: context,
@@ -156,17 +135,35 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
               child: const Text("Cancel"),
             ),
             TextButton(
-              onPressed: () {
-                // Perform deletion
-                setState(() {
-                  widget.allDuties
-                      .removeWhere((duty) => duty.id == _currentDuty.id);
-                });
-                Navigator.of(context).pop(); // Dismiss dialog
-                Navigator.pop(context); // Navigate back to DutySPTScreen
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Duty Deleted!")),
-                );
+              onPressed: () async {
+                // Implement the delete functionality
+                final String url =
+                    'http://easy-route-easy.apps.dev.taspen.co.id/api/no_token/duty/${duty.id}/delete';
+
+                try {
+                  final response = await http.delete(Uri.parse(url));
+
+                  if (response.statusCode == 200) {
+                    // Successfully deleted, navigate back
+                    Navigator.of(context).pop(); // Dismiss dialog
+                    Navigator.pop(context, 'deleted');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Duty Deleted!")),
+                    );
+                  } else {
+                    Navigator.of(context).pop(); // Dismiss dialog
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text(
+                              "Failed to delete duty. Status Code: ${response.statusCode}")),
+                    );
+                  }
+                } catch (e) {
+                  Navigator.of(context).pop(); // Dismiss dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Error deleting duty: $e")),
+                  );
+                }
               },
               child: const Text(
                 "Delete",
@@ -179,10 +176,11 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     );
   }
 
-  void _onPrint() async {
+  void _onPrint(DutyDetailData dutyDetailData) async {
     try {
       await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => await _generatePdf(format),
+        onLayout: (PdfPageFormat format) async =>
+            await _generatePdf(format, dutyDetailData),
       );
     } catch (e) {
       // Handle any errors during PDF generation or printing
@@ -192,12 +190,17 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     }
   }
 
-  Future<Uint8List> _generatePdf(PdfPageFormat format) async {
+  Future<Uint8List> _generatePdf(
+      PdfPageFormat format, DutyDetailData dutyDetailData) async {
     final pdf = pw.Document();
 
-    final duty = _currentDuty;
-    final approverName = _getApproverName(duty.approverId);
-    final createdBy = duty.createdBy ?? "Unknown";
+    User user = dutyDetailData.user;
+    GetDutyDetail dutyDetail = dutyDetailData.dutyDetail;
+    Duty duty = dutyDetail.duty;
+    Approval approval = dutyDetail.approval;
+    String approverName = _getApproverName(approval.id);
+    String createdBy = user.nama;
+    String rejectionReason = approval.note ?? "";
 
     pdf.addPage(
       pw.Page(
@@ -241,7 +244,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                   ),
                 ),
                 pw.Text(
-                  _createdAt,
+                  _formatDateTime(duty.createdAt),
                   style: pw.TextStyle(fontSize: 14),
                 ),
                 pw.SizedBox(height: 16),
@@ -254,7 +257,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                   ),
                 ),
                 pw.Text(
-                  _modifiedAt,
+                  _formatDateTime(duty.updatedAt),
                   style: pw.TextStyle(fontSize: 14),
                 ),
                 pw.SizedBox(height: 20),
@@ -294,14 +297,14 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                   style: pw.TextStyle(fontSize: 16),
                 ),
                 pw.Text(
-                  'NIK: 3713',
+                  'NIK: ${approval.nik ?? "N/A"}',
                   style: pw.TextStyle(fontSize: 16),
                 ),
                 pw.Text(
                   'Position: Senior Programmer',
                   style: pw.TextStyle(fontSize: 16),
                 ),
-                if (isRejected) ...[
+                if (duty.status!.toLowerCase() == "rejected") ...[
                   pw.SizedBox(height: 20),
                   pw.Divider(),
                   pw.SizedBox(height: 20),
@@ -314,8 +317,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                     ),
                   ),
                   pw.Text(
-                    _rejectionReason.isNotEmpty
-                        ? _rejectionReason
+                    rejectionReason.isNotEmpty
+                        ? rejectionReason
                         : "No reason provided.",
                     style: pw.TextStyle(
                       color: PdfColors.red,
@@ -334,6 +337,57 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     return pdf.save();
   }
 
+  /// Fetch approver's name based on approval.id
+  String _getApproverName(int approverId) {
+    // Define the approver list here or fetch from a data source
+    final List<Map<String, String>> _approverList = [
+      {"id": "60001", "name": "John Doe (CEO)"},
+      {"id": "60002", "name": "Jane Smith (CFO)"},
+      {"id": "60003", "name": "Robert Brown (COO)"},
+    ];
+
+    final approver = _approverList.firstWhere(
+      (element) => element["id"] == approverId.toString(),
+      orElse: () => {"id": "", "name": "Unknown Approver"},
+    );
+
+    return approver["name"]!;
+  }
+
+  /// Helper method to format time from "HH:mm:ss" to "hh:mm a"
+  String _formatTime(String time) {
+    try {
+      // Assuming time is in "HH:mm:ss" format
+      DateTime parsedTime = DateTime.parse("1970-01-01T$time");
+      return DateFormat('hh:mm a').format(parsedTime);
+    } catch (e) {
+      return time;
+    }
+  }
+
+  /// Helper method to format date from ISO string to "dd-MM-yyyy"
+  String _formatDate(String date) {
+    try {
+      DateTime parsedDate = DateTime.parse(date);
+      return DateFormat('dd-MM-yyyy').format(parsedDate);
+    } catch (e) {
+      return date;
+    }
+  }
+
+  /// Helper method to format DateTime to "MMM dd, yyyy hh:mm a"
+  String _formatDateTime(DateTime dateTime) {
+    try {
+      return DateFormat('MMM dd, yyyy hh:mm a').format(dateTime);
+    } catch (e) {
+      return dateTime.toIso8601String();
+    }
+  }
+
+  /// Capitalize the first letter of the status
+  String capitalize(String s) =>
+      s.isNotEmpty ? s[0].toUpperCase() + s.substring(1).toLowerCase() : s;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -341,88 +395,126 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
         title: const Text("Duty Detail"),
         backgroundColor: Colors.teal,
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth > 800) {
-            // Desktop with left sidebar
-            return Row(
-              children: [
-                Container(
-                  width: 250,
-                  color: Colors.teal.shade50,
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: FutureBuilder<DutyDetailData>(
+        future: _dutyDetailDataFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Show a loading indicator while fetching data
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            // Show error message if any
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
+          } else if (snapshot.hasData) {
+            // Once data is fetched, display it
+            final dutyDetailData = snapshot.data!;
+            final User user = dutyDetailData.user;
+            final GetDutyDetail dutyDetail = dutyDetailData.dutyDetail;
+            final Duty duty = dutyDetail.duty;
+            final Approval approval = dutyDetail.approval;
+
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth > 800) {
+                  // Desktop with left sidebar
+                  return Row(
                     children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.edit),
-                        label: const Text("Edit Duty Form"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(fontSize: 16),
-                        ),
-                        onPressed: _onEdit,
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.home),
-                        label: const Text("Home"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(fontSize: 16),
-                        ),
-                        onPressed: () {
-                          // Navigate to Home Screen
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const MainScreen(),
+                      Container(
+                        width: 250,
+                        color: Colors.teal.shade50,
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.edit),
+                              label: const Text("Edit Duty Form"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                textStyle: const TextStyle(fontSize: 16),
+                              ),
+                              onPressed: () => _onEdit(duty),
                             ),
-                            (Route<dynamic> route) => false,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.airline_seat_flat),
-                        label: const Text("Paid Leave (Cuti)"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(fontSize: 16),
-                        ),
-                        onPressed: () {
-                          // Navigate to Paid Leave (Cuti) Screen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PaidLeaveCutiScreen(),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.home),
+                              label: const Text("Home"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                textStyle: const TextStyle(fontSize: 16),
+                              ),
+                              onPressed: () {
+                                // Navigate to Home Screen
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const MainScreen(),
+                                  ),
+                                  (Route<dynamic> route) => false,
+                                );
+                              },
                             ),
-                          );
-                        },
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.airline_seat_flat),
+                              label: const Text("Paid Leave (Cuti)"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                textStyle: const TextStyle(fontSize: 16),
+                              ),
+                              onPressed: () {
+                                // Navigate to Paid Leave (Cuti) Screen
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PaidLeaveCutiScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(32),
+                          child: _buildDetailContent(
+                            user: user,
+                            duty: duty,
+                            approval: approval,
+                            isMobile: false,
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(32),
-                    child: _buildDetailContent(),
-                  ),
-                ),
-              ],
+                  );
+                } else {
+                  // Mobile
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildDetailContent(
+                      user: user,
+                      duty: duty,
+                      approval: approval,
+                      isMobile: true,
+                    ),
+                  );
+                }
+              },
             );
           } else {
-            // Mobile
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: _buildDetailContent(isMobile: true),
-            );
+            // Handle unexpected cases
+            return const Center(child: Text("No data available."));
           }
         },
       ),
@@ -430,22 +522,32 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     );
   }
 
-  Widget _buildDetailContent({bool isMobile = false}) {
-    final duty = _currentDuty;
-    final description = duty.description ?? "No Description";
-    final status = duty.status;
-    final dateStr = duty.dutyDate.toIso8601String();
-    final startTimeStr = duty.startTime;
-    final endTimeStr = duty.endTime;
+  Widget _buildDetailContent({
+    required User user,
+    required Duty duty,
+    required Approval approval,
+    bool isMobile = false,
+  }) {
+    final String description = duty.description ?? "No Description";
+    final String status = duty.status!;
+    final String dateStr = duty.dutyDate.toIso8601String();
+    final String startTimeStr = duty.startTime;
+    final String endTimeStr = duty.endTime;
 
-    // If createdBy or user info is not set, let's default to "Unknown"
-    final createdBy = duty.createdBy ?? "Unknown";
-    final approverName = _getApproverName(duty.approverId); // Fetch dynamically based on approverId
+    final String createdBy = user.nama;
+    final String approverName = _getApproverName(approval.id);
 
-    // We'll parse status and format dates
-    final displayedDate = _formatDate(duty.dutyDate.toIso8601String());
-    final displayedStart = _formatTime(duty.startTime);
-    final displayedEnd = _formatTime(duty.endTime);
+    final String displayedDate = _formatDate(duty.dutyDate.toIso8601String());
+    final String displayedStart = _formatTime(duty.startTime);
+    final String displayedEnd = _formatTime(duty.endTime);
+    final String rejectionReason = approval.note ?? "";
+
+    // Determine status flags
+    bool isDraft = status.toLowerCase() == "draft";
+    bool isWaiting = status.toLowerCase() == "waiting";
+    bool isApproved = status.toLowerCase() == "approved";
+    bool isReturned = status.toLowerCase() == "returned";
+    bool isRejected = status.toLowerCase() == "rejected";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,7 +609,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _createdAt,
+                                _formatDateTime(duty.createdAt),
                                 style: const TextStyle(fontSize: 14),
                               ),
                               const SizedBox(height: 16),
@@ -519,7 +621,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _modifiedAt,
+                                _formatDateTime(duty.updatedAt),
                                 style: const TextStyle(fontSize: 14),
                               ),
                             ],
@@ -556,7 +658,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _createdAt,
+                            _formatDateTime(duty.createdAt),
                             style: const TextStyle(fontSize: 14),
                           ),
                           const SizedBox(height: 16),
@@ -568,7 +670,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _modifiedAt,
+                            _formatDateTime(duty.updatedAt),
                             style: const TextStyle(fontSize: 14),
                           ),
                         ],
@@ -626,9 +728,9 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                   "Name: $approverName",
                   style: const TextStyle(fontSize: 16),
                 ),
-                const Text(
-                  "NIK: 3713",
-                  style: TextStyle(fontSize: 16),
+                Text(
+                  "NIK: ${approval.nik ?? "N/A"}",
+                  style: const TextStyle(fontSize: 16),
                 ),
                 const Text(
                   "Position: Senior Programmer",
@@ -639,9 +741,25 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                 const SizedBox(height: 20),
 
                 // Action Buttons
-                _buildActionButtons(status),
+                _buildActionButtons(
+                  duty,
+                  isDraft: isDraft,
+                  isReturned: isReturned,
+                  isWaiting: isWaiting,
+                  isApproved: isApproved,
+                  isRejected: isRejected,
+                  rejectionReason: rejectionReason,
+                  dutyDetailData: DutyDetailData(
+                      user: user,
+                      dutyDetail: GetDutyDetail(
+                          duty: duty,
+                          approval: approval,
+                          transport: {})), // Pass combined data
+                ),
                 // Display Rejection Reason if status is Rejected
-                if (isRejected) _buildRejectionReason(),
+                if (isRejected)
+                  _buildRejectionReason(
+                      rejectionReason: rejectionReason, isMobile: isMobile),
               ],
             ),
           ),
@@ -650,28 +768,18 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     );
   }
 
-  /// Fetch approver's name based on approverId
-  String _getApproverName(String? approverId) {
-    if (approverId == null || approverId.isEmpty) return "N/A";
-
-    // Define the approver list here or fetch from a data source
-    final List<Map<String, String>> _approverList = [
-      {"id": "60001", "name": "John Doe (CEO)"},
-      {"id": "60002", "name": "Jane Smith (CFO)"},
-      {"id": "60003", "name": "Robert Brown (COO)"},
-    ];
-
-    final approver = _approverList.firstWhere(
-      (element) => element["id"] == approverId,
-      orElse: () => {"id": "", "name": "Unknown Approver"},
-    );
-
-    return approver["name"]!;
-  }
-
-  /// Build the bottom row of Action Buttons
-  Widget _buildActionButtons(String status) {
-    // Define colors based on status
+  /// Build the Action Buttons based on duty status
+  Widget _buildActionButtons(
+    Duty duty, {
+    required bool isDraft,
+    required bool isReturned,
+    required bool isWaiting,
+    required bool isApproved,
+    required bool isRejected,
+    required String rejectionReason,
+    required DutyDetailData dutyDetailData,
+  }) {
+    String status = duty.status!;
     Color statusColor = Colors.grey;
     if (status.toLowerCase() == "approved")
       statusColor = Colors.green;
@@ -691,33 +799,30 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
             label: const Text("Edit"),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
               textStyle: const TextStyle(fontSize: 16),
             ),
-            onPressed: _onEdit,
+            onPressed: () => _onEdit(duty),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.send),
             label: const Text("Send"),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
               textStyle: const TextStyle(fontSize: 16),
             ),
-            onPressed: _onSend,
+            onPressed: () => _onSend(duty),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.delete),
             label: const Text("Delete"),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
               textStyle: const TextStyle(fontSize: 16),
             ),
-            onPressed: _onDelete,
+            onPressed: () => _onDelete(duty),
           ),
         ],
       );
@@ -732,22 +837,20 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
             label: const Text("Edit"),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
               textStyle: const TextStyle(fontSize: 16),
             ),
-            onPressed: _onEdit,
+            onPressed: () => _onEdit(duty),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.send),
             label: const Text("Send"),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
               textStyle: const TextStyle(fontSize: 16),
             ),
-            onPressed: _onSend,
+            onPressed: () => _onSend(duty),
           ),
         ],
       );
@@ -760,11 +863,12 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
           label: Text("Print (${capitalize(status)})"),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.teal,
-            padding:
-                const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             textStyle: const TextStyle(fontSize: 16),
           ),
-          onPressed: _onPrint,
+          onPressed: () {
+            _onPrint(dutyDetailData);
+          },
         ),
       );
     }
@@ -778,32 +882,13 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
             label: Text("Print (${capitalize(status)})"),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
               textStyle: const TextStyle(fontSize: 16),
             ),
-            onPressed: _onPrint,
+            onPressed: () => _onPrint(dutyDetailData),
           ),
           const SizedBox(height: 10),
-          Text(
-            "Rejection Reason:",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.red.shade700,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _rejectionReason.isNotEmpty
-                ? _rejectionReason
-                : "No reason provided.",
-            style: const TextStyle(
-              color: Colors.red,
-              fontStyle: FontStyle.italic,
-              fontSize: 14,
-            ),
-          ),
+          // Rejection Reason is already handled separately
         ],
       );
     }
@@ -815,18 +900,20 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
           label: Text("Print (${capitalize(status)})"),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.teal,
-            padding:
-                const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             textStyle: const TextStyle(fontSize: 16),
           ),
-          onPressed: _onPrint,
+          onPressed: () => _onPrint(dutyDetailData),
         ),
       );
     }
   }
 
   /// Build the Rejection Reason section
-  Widget _buildRejectionReason() {
+  Widget _buildRejectionReason({
+    required String rejectionReason,
+    bool isMobile = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(top: 20.0),
       child: Column(
@@ -842,8 +929,8 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            _rejectionReason.isNotEmpty
-                ? _rejectionReason
+            rejectionReason.isNotEmpty
+                ? rejectionReason
                 : "No reason provided.",
             style: const TextStyle(
               color: Colors.red,
@@ -854,30 +941,5 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
         ],
       ),
     );
-  }
-
-  /// Capitalize the first letter of the status
-  String capitalize(String s) =>
-      s.isNotEmpty ? s[0].toUpperCase() + s.substring(1).toLowerCase() : s;
-
-  /// Helper method to format time from "HH:mm:ss" to "hh:mm a"
-  String _formatTime(String time) {
-    try {
-      // Assuming time is in "HH:mm:ss" format
-      DateTime parsedTime = DateTime.parse("1970-01-01T$time");
-      return DateFormat('hh:mm a').format(parsedTime);
-    } catch (e) {
-      return time;
-    }
-  }
-
-  /// Helper method to format date from ISO string to "dd-MM-yyyy"
-  String _formatDate(String date) {
-    try {
-      DateTime parsedDate = DateTime.parse(date);
-      return DateFormat('dd-MM-yyyy').format(parsedDate);
-    } catch (e) {
-      return date;
-    }
   }
 }

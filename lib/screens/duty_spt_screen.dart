@@ -11,8 +11,6 @@ import 'create_duty_form.dart';
 import 'duty_detail_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:mobileapp/services/api_service_easy_taspen.dart'; // Import ApiService
-import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import for Secure Storage
-import 'dart:convert'; // Import for JSON decoding
 
 class DutySPTScreen extends StatefulWidget {
   const DutySPTScreen({Key? key}) : super(key: key);
@@ -150,7 +148,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
         bool matchesStatus = selectedStatus == "All"
             ? true
-            : duty.status.toLowerCase() == selectedStatus.toLowerCase();
+            : duty.status!.toLowerCase() == selectedStatus.toLowerCase();
 
         bool matchesStartDate = filterStartDate == null
             ? true
@@ -176,24 +174,15 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   /// Determines if a duty belongs to Conceptor/Maker role
   bool _isConceptorMakerDuty(Duty duty) {
     // Define logic to determine if duty is for Conceptor/Maker
-    return [
-      "Draft",
-      "Waiting",
-      "Returned",
-      "Approved",
-      "Rejected"
-    ].contains(duty.status);
+    return ["Draft", "Waiting", "Returned", "Approved", "Rejected"]
+        .contains(duty.status);
   }
 
   /// Determines if a duty belongs to Approval role
   bool _isApprovalDuty(Duty duty) {
     // Define logic to determine if duty is for Approval
-    return [
-      "Need Approve",
-      "Return",
-      "Approve",
-      "Reject"
-    ].contains(duty.status);
+    return ["Need Approve", "Return", "Approve", "Reject"]
+        .contains(duty.status);
   }
 
   /// Sorts the duties based on the selected column
@@ -254,7 +243,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: Colors.teal, // Header background color
               onPrimary: Colors.white, // Header text color
               onSurface: Colors.teal, // Body text color
@@ -370,8 +359,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    CreateDutyForm(duties: duties),
+                                builder: (context) => const CreateDutyForm(),
                               ),
                             );
                             _fetchDuties(); // Refresh duties after form submission
@@ -813,8 +801,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      CreateDutyForm(duties: duties),
+                                  builder: (context) => const CreateDutyForm(),
                                 ),
                               );
                               _fetchDuties(); // Refresh duties after form submission
@@ -1034,8 +1021,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
                           // Pagination
                           Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 "Showing ${startIndex + 1} to "
@@ -1102,7 +1088,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   void _openFilterModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
@@ -1117,8 +1103,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                 children: [
                   const Text(
                     "Status:",
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1134,8 +1119,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                       },
                       items: _getStatusDropdownItems(),
                       dropdownColor: Colors.white,
-                      style: const TextStyle(
-                          color: Colors.black, fontSize: 16),
+                      style: const TextStyle(color: Colors.black, fontSize: 16),
                       iconEnabledColor: Colors.teal,
                       underline: Container(
                         height: 2,
@@ -1150,7 +1134,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
               // Date Range Filter
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 20, color: Colors.teal),
+                  const Icon(Icons.calendar_today,
+                      size: 20, color: Colors.teal),
                   const SizedBox(width: 8),
                   Text(
                     filterStartDate == null
@@ -1170,7 +1155,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 20, color: Colors.teal),
+                  const Icon(Icons.calendar_today,
+                      size: 20, color: Colors.teal),
                   const SizedBox(width: 8),
                   Text(
                     filterEndDate == null
@@ -1295,9 +1281,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                 child: Text(
                   status,
                   style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: color),
+                      fontSize: 16, fontWeight: FontWeight.w500, color: color),
                 ),
               ),
               CircleAvatar(
@@ -1353,16 +1337,14 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                DutyDetailScreen(duty: duty, allDuties: duties),
+            builder: (_) => DutyDetailScreen(dutyId: duty.id),
           ),
         ).then((_) {
           _fetchDuties(); // Refresh duties after returning from detail screen
         });
       },
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
@@ -1393,8 +1375,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   const SizedBox(height: 4),
                   Text(
                     "${_formatTime(duty.startTime)} - ${_formatTime(duty.endTime)}",
-                    style:
-                        const TextStyle(fontSize: 14, color: Colors.grey),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 ],
               ),
@@ -1419,7 +1400,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                 padding:
                     const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                 child: Text(
-                  duty.status,
+                  duty.status!,
                   style: TextStyle(
                       color: statusColor,
                       fontWeight: FontWeight.bold,
@@ -1451,9 +1432,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
             const SizedBox(width: 4),
             Icon(
               sortColumn == columnKey
-                  ? (ascending
-                      ? Icons.arrow_upward
-                      : Icons.arrow_downward)
+                  ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
                   : Icons.unfold_more, // default icon
               size: 18,
               color: Colors.teal,
@@ -1531,8 +1510,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) =>
-                  DutyDetailScreen(duty: duty, allDuties: duties),
+              builder: (_) => DutyDetailScreen(dutyId: duty.id),
             ),
           ).then((_) {
             _fetchDuties(); // Refresh duties after returning from detail screen
@@ -1546,8 +1524,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
               // Description
               Text(
                 duty.description ?? "",
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
               // Time Range
@@ -1584,7 +1562,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                     padding:
                         const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                     child: Text(
-                      duty.status,
+                      duty.status ?? "",
                       style: TextStyle(
                           color: statusColor,
                           fontWeight: FontWeight.bold,
@@ -1593,20 +1571,6 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                   ),
                 ],
               ),
-              // Rejection Reason for Rejected Status
-              if (duty.status == "Rejected" &&
-                  duty.rejectionReason != null &&
-                  duty.rejectionReason!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12.0),
-                  child: Text(
-                    "Reason: ${duty.rejectionReason}",
-                    style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.redAccent,
-                        fontStyle: FontStyle.italic),
-                  ),
-                ),
             ],
           ),
         ),

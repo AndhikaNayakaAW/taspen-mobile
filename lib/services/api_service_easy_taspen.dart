@@ -2,6 +2,7 @@
 
 import 'package:http/http.dart' as http;
 import 'package:mobileapp/dto/create_duty_response.dart';
+import 'package:mobileapp/dto/get_duty_detail.dart';
 import 'package:mobileapp/dto/get_duty_list.dart';
 import 'dart:convert';
 import '../dto/login_response.dart';
@@ -9,7 +10,7 @@ import '../dto/base_response.dart';
 
 class ApiService {
   final String baseUrl =
-      "https://c24fccc8-e0f8-4bd9-935c-1b5ac4edbd72.mock.pstmn.io";
+      "https://cb2cad5f-9c4c-4a51-930c-fe9fa831f7c1.mock.pstmn.io";
 
   // Login Method
   Future<LoginResponse> login(String username, String password) async {
@@ -56,7 +57,7 @@ class ApiService {
 
   Future<BaseResponse<GetDutyList>> fetchDuties(
       String nik, String kodeJabatan) async {
-    final url = Uri.parse('$baseUrl/devops-easy/src/public/api/duty/index');
+    final url = Uri.parse('$baseUrl/api/no_token/duty/index');
     try {
       final response = await http.post(
         url,
@@ -87,12 +88,44 @@ class ApiService {
     }
   }
 
+  Future<BaseResponse<GetDutyDetail>> fetchDutyDetailById(
+      int dutyId, String nik) async {
+    final url = Uri.parse('$baseUrl/api/no_token/duty/$dutyId/show');
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'nik': nik,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseBody = jsonDecode(response.body);
+
+        if (responseBody['metadata']['code'] == 200) {
+          return BaseResponse<GetDutyDetail>.fromJson(
+              responseBody, GetDutyDetail.fromJson);
+        } else {
+          throw Exception(
+              responseBody['metadata']['message'] ?? 'Failed to fetch duties.');
+        }
+      } else {
+        throw Exception('Failed to fetch duties: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching duties: $e');
+    }
+  }
+
   Future<BaseResponse<CreateDutyResponse>> createDuty({
     required String nik,
     required String orgeh,
     required String ba,
   }) async {
-    final url = Uri.parse('$baseUrl/devops-easy/src/public/api/duty/create');
+    final url = Uri.parse('$baseUrl/api/no_token/duty/create');
     try {
       final response = await http.post(
         url,
@@ -147,53 +180,102 @@ class ApiService {
   }
 
   // Metode untuk menyimpan Duty (Store Duty)
-  Future<BaseResponse<String>> storeDuty({
-    required String wktMulai,
-    required String wktSelesai,
-    required String tglTugas,
-    required String keterangan,
-    required int kendaraan,
-    required List<String> employee,
-    required String nik,
-    required String username,
-    required String approver,
-    required String submit,
-  }) async {
-    final url = Uri.parse('$baseUrl/devops-easy/src/public/api/duty/store');
+  // Future<BaseResponse<String>> storeDuty({
+  //   required String wktMulai,
+  //   required String wktSelesai,
+  //   required String tglTugas,
+  //   required String keterangan,
+  //   required int kendaraan,
+  //   required List<String> employee,
+  //   required String nik,
+  //   required String username,
+  //   required String approver,
+  //   required String submit,
+  // }) async {
+  //   final url = Uri.parse('$baseUrl/api/no_token/duty/store');
 
-    // Membuat payload JSON
-    Map<String, dynamic> payload = {
-      "wkt_mulai": wktMulai,
-      "wkt_selesai": wktSelesai,
-      "tgl_tugas": tglTugas,
-      "keterangan": keterangan,
-      "kendaraan": kendaraan,
-      "employee": { for (int i = 0; i < employee.length; i++) '$i' : employee[i] },
-      "nik": nik,
-      "username": username,
-      "approver": approver,
-      "submit": submit,
-    };
+  //   // Membuat payload JSON
+  //   Map<String, dynamic> payload = {
+  //     "wkt_mulai": wktMulai,
+  //     "wkt_selesai": wktSelesai,
+  //     "tgl_tugas": tglTugas,
+  //     "keterangan": keterangan,
+  //     "kendaraan": kendaraan,
+  //     "employee": {for (int i = 0; i < employee.length; i++) '$i': employee[i]},
+  //     "nik": nik,
+  //     "username": username,
+  //     "approver": approver,
+  //     "submit": submit,
+  //   };
+
+  //   try {
+  //     final response = await http.post(
+  //       url,
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: jsonEncode(payload),
+  //     );
+
+  //     if (response.statusCode == 200) {
+  //       final Map<String, dynamic> responseBody = jsonDecode(response.body);
+
+  //       if (responseBody['metadata']['code'] == 200) {
+  //         return BaseResponse<String>.fromJson(
+  //             responseBody, (data) => data['response'] as String);
+  //       } else {
+  //         throw Exception(
+  //             responseBody['metadata']['message'] ?? 'Failed to store duty.');
+  //       }
+  //     } else {
+  //       throw Exception('Failed to store duty: ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     throw Exception('Error storing duty: $e');
+  //   }
+  // }
+
+  Future<BaseResponse<String>> storeDuty(
+      Map<String, dynamic> requestBody) async {
+    final String url = '$baseUrl/api/no_token/duty/store';
 
     try {
       final response = await http.post(
-        url,
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
         },
-        body: jsonEncode(payload),
+        body: json.encode(requestBody),
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = jsonDecode(response.body);
+        final jsonResponse = json.decode(response.body);
+        return jsonResponse['response'];
+      } else {
+        throw Exception('Failed to store duty: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error storing duty: $e');
+    }
+  }
 
-        if (responseBody['metadata']['code'] == 200) {
-          return BaseResponse<String>.fromJson(
-              responseBody, (data) => data['response'] as String);
-        } else {
-          throw Exception(
-              responseBody['metadata']['message'] ?? 'Failed to store duty.');
-        }
+  /// Updates an existing duty
+  Future<BaseResponse<String>> updateDuty(
+      int dutyId, Map<String, dynamic> requestBody) async {
+    final String url = '$baseUrl/api/no_token/duty/$dutyId/update';
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        return jsonResponse['response'];
       } else {
         throw Exception('Failed to store duty: ${response.statusCode}');
       }

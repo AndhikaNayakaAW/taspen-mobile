@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobileapp/dto/base_response.dart';
 import 'package:mobileapp/dto/create_duty_response.dart';
+import 'package:mobileapp/model/approval.dart';
 import 'package:mobileapp/model/duty.dart';
 import 'package:mobileapp/model/employee_duty.dart';
 import 'package:mobileapp/model/user.dart';
@@ -11,17 +12,17 @@ import 'package:mobileapp/services/auth_service.dart';
 import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
 import 'package:intl/intl.dart'; // Import intl for date formatting
 import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import for Secure Storage
-import 'dart:convert'; // Import for JSON decoding
+// Import for JSON decoding
 
 class CreateDutyForm extends StatefulWidget {
   /// We pass the entire duties list so we can add a new draft or waiting item
-  final List<Duty> duties;
   final Duty? dutyToEdit; // Optional parameter for editing
+  final Approval? approvalToEdit; // Optional parameter for editing
 
   const CreateDutyForm({
     super.key,
-    required this.duties,
     this.dutyToEdit, // Initialize the optional parameter
+    this.approvalToEdit, // Initialize the optional parameter
   });
 
   @override
@@ -116,8 +117,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
       User user = await _authService.loadUserInfo();
 
       // Fetch create duty form data from API
-      BaseResponse<CreateDutyResponse> createDutyResponse =
-          await _apiService.createDuty(nik: user.nik, orgeh: user.orgeh, ba: user.ba);
+      BaseResponse<CreateDutyResponse> createDutyResponse = await _apiService
+          .createDuty(nik: user.nik, orgeh: user.orgeh, ba: user.ba);
 
       if (createDutyResponse.metadata.code == 200) {
         setState(() {
@@ -128,18 +129,12 @@ class CreateDutyFormState extends State<CreateDutyForm> {
           // If editing an existing duty, populate the form with its data
           if (widget.dutyToEdit != null) {
             final duty = widget.dutyToEdit!;
-            isRejected = duty.status.toLowerCase() == "rejected";
-            _rejectionReason = duty.rejectionReason ?? "";
+            isRejected = duty.status!.toLowerCase() == "rejected";
             _description = duty.description ?? "";
-            _employeeDuties = (duty.employee?.isNotEmpty ?? false)
-                ? duty.employee!
-                    .map((e) => EmployeeDuty(
-                          employeeId: e.employeeId,
-                          employeeName: _employeeList[e.employeeId] ?? "",
-                        ))
-                    .toList()
-                : [EmployeeDuty(employeeId: "", employeeName: "")];
-            _selectedApproverId = duty.approverId;
+
+            _selectedApproverId = widget.approvalToEdit != null
+                ? widget.approvalToEdit!.id.toString()
+                : '';
             _selectedDutyDate = duty.dutyDate;
             _startTime = _parseTime(duty.startTime);
             _endTime = _parseTime(duty.endTime);
@@ -248,105 +243,87 @@ class CreateDutyFormState extends State<CreateDutyForm> {
   void _saveOrUpdateForm() async {
     // Validate form before saving
     if (_validateForm()) {
-      Duty dutyData = Duty(
-        id: widget.dutyToEdit != null
-            ? widget.dutyToEdit!.id
-            : (widget.duties.isNotEmpty
-                ? widget.duties.map((d) => d.id).reduce((a, b) => a > b ? a : b) + 1
-                : 1),
-        description: _description,
-        dutyDate: _selectedDutyDate ?? DateTime.now(),
-        status: widget.dutyToEdit != null ? widget.dutyToEdit!.status : "Draft",
-        startTime: _startTime == null
-            ? "09:00:00"
-            : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
-        endTime: _endTime == null
-            ? "17:00:00"
-            : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
-        transport: _selectedTransport ?? "Personal",
-        sptNumber: null, // Assign as needed
-        sptLetterNumber: null, // Assign as needed
-        dateCreated: widget.dutyToEdit?.dateCreated ?? DateTime.now(),
-        createdAt: widget.dutyToEdit?.createdAt ?? DateTime.now(),
-        updatedAt: DateTime.now(),
-        sapStatus: null,
-        sapError: null,
-        rejectionReason: null,
-        createdBy: "andhika.nayaka", // Replace with actual user
-        approverId: _selectedApproverId,
-        employee: _employeeDuties,
-      );
       setState(() {
         isLoading = true;
         errorMessage = null;
       });
+
       try {
-        // Ambil informasi pengguna yang sedang login
+        // Fetch user info
         User user = await _authService.loadUserInfo();
-        // Persiapkan data untuk dikirim ke API
-        final response = await _apiService.storeDuty(
-          wktMulai: _startTime != null
+
+        // Prepare the employee map
+        Map<String, String> employeeMap = {};
+        for (int i = 0; i < _employeeDuties.length; i++) {
+          if (_employeeDuties[i].employeeId.isNotEmpty) {
+            employeeMap["$i"] = _employeeDuties[i].employeeId;
+          }
+        }
+
+        // Prepare the request body
+        Map<String, dynamic> requestBody = {
+          "wkt_mulai": _startTime != null
               ? "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}"
               : "09:00",
-          wktSelesai: _endTime != null
+          "wkt_selesai": _endTime != null
               ? "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}"
               : "17:00",
-          tglTugas: _selectedDutyDate != null
+          "tgl_tugas": _selectedDutyDate != null
               ? DateFormat('yyyy-MM-dd').format(_selectedDutyDate!)
               : DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          keterangan: _description,
-          kendaraan: int.tryParse(_selectedTransport ?? '0') ?? 0,
-          employee: _employeeDuties
-              .map((e) => e.employeeId)
-              .where((id) => id.isNotEmpty)
-              .toList(),
-          nik: user.nik,
-          username: user.username,
-          approver: _selectedApproverId ?? '',
-          submit: 'save', // 'save' untuk menyimpan draft
-        );
+          "keterangan": _description,
+          "kendaraan": int.tryParse(_selectedTransport ?? '0') ?? 0,
+          "employee": employeeMap,
+          "nik": user.nik,
+          "username": user.username,
+          "approver": _selectedApproverId ?? '',
+          "submit":
+              "save", // 'save' untuk menyimpan draft, 'submit' untuk mengirim ke approver
+        };
 
-        if (widget.dutyToEdit != null) {
-          // Editing mode: Update existing duty based on 'id'
-          int index = widget.duties.indexWhere((duty) => duty.id == widget.dutyToEdit!.id);
-          if (index != -1) {
-            setState(() {
-              widget.duties[index] = dutyData;
-            });
-          }
+        // Determine the API endpoint and method based on editing mode
+        if (isEditing) {
+          // Editing mode: Update existing duty
+          final int dutyId = widget.dutyToEdit!.id;
+
+          // Make the API call to update duty
+          BaseResponse<String> response =
+              await _apiService.updateDuty(dutyId, requestBody);
+
           if (response.metadata.code == 200) {
-            // Berhasil menyimpan draft
+            // Successfully updated duty
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.response ?? 'Draft saved successfully.')),
+              SnackBar(
+                  content:
+                      Text(response.response ?? 'Duty updated successfully.')),
             );
-            // Anda dapat menambahkan logika tambahan di sini, seperti navigasi atau memperbarui UI
-            Navigator.pop(context, 'saved');
+            Navigator.pop(context, 'updated');
           } else {
-            // Gagal menyimpan draft
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.metadata.message ?? 'Failed to save draft.')),
-            );
+            // Failed to update duty
+            throw Exception(
+                response.metadata.message ?? 'Failed to update duty.');
           }
         } else {
-          // Creating mode: Add new duty
-          widget.duties.add(dutyData);
+          // Creating mode: Create new duty
+          BaseResponse<String> response =
+              await _apiService.storeDuty(requestBody);
+
           if (response.metadata.code == 200) {
-            // Berhasil menyimpan draft
+            // Successfully created duty
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.response ?? 'Draft saved successfully.')),
+              SnackBar(
+                  content:
+                      Text(response.response ?? 'Duty created successfully.')),
             );
-            // Anda dapat menambahkan logika tambahan di sini, seperti navigasi atau memperbarui UI
             Navigator.pop(context, 'saved');
           } else {
-            // Gagal menyimpan draft
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.metadata.message ?? 'Failed to save draft.')),
-            );
+            // Failed to create duty
+            throw Exception(
+                response.metadata.message ?? 'Failed to create duty.');
           }
         }
       } catch (e) {
         setState(() {
-          widget.duties.add(dutyData);
           errorMessage = e.toString().replaceFirst('Exception: ', '');
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -357,13 +334,6 @@ class CreateDutyFormState extends State<CreateDutyForm> {
           isLoading = false;
         });
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(widget.dutyToEdit != null
-                ? "Duty Updated! (Draft)"
-                : "Duty Form Saved! (Draft)")),
-      );
-      Navigator.pop(context, widget.dutyToEdit != null ? 'updated' : 'saved');
     }
   }
 
@@ -371,100 +341,83 @@ class CreateDutyFormState extends State<CreateDutyForm> {
   void _sendToApprover() async {
     // Validate form before sending
     if (_validateForm()) {
-      Duty dutyData = Duty(
-        id: widget.dutyToEdit != null
-            ? widget.dutyToEdit!.id
-            : (widget.duties.isNotEmpty
-                ? widget.duties.map((d) => d.id).reduce((a, b) => a > b ? a : b) + 1
-                : 1),
-        description: _description,
-        dutyDate: _selectedDutyDate ?? DateTime.now(),
-        status: "Waiting",
-        startTime: _startTime == null
-            ? "09:00:00"
-            : "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}:00",
-        endTime: _endTime == null
-            ? "17:00:00"
-            : "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}:00",
-        transport: _selectedTransport ?? "Personal",
-        sptNumber: null, // Assign as needed
-        sptLetterNumber: null, // Assign as needed
-        dateCreated: widget.dutyToEdit?.dateCreated ?? DateTime.now(),
-        createdAt: widget.dutyToEdit?.createdAt ?? DateTime.now(),
-        updatedAt: DateTime.now(),
-        sapStatus: null,
-        sapError: null,
-        rejectionReason: null,
-        createdBy: "andhika.nayaka", // Replace with actual user
-        approverId: _selectedApproverId,
-        employee: _employeeDuties,
-      );
       setState(() {
         isLoading = true;
         errorMessage = null;
       });
+
       try {
-        // Ambil informasi pengguna yang sedang login
+        // Fetch user info
         User user = await _authService.loadUserInfo();
-        // Persiapkan data untuk dikirim ke API
-        final response = await _apiService.storeDuty(
-          wktMulai: _startTime != null
+
+        // Prepare the employee map
+        Map<String, String> employeeMap = {};
+        for (int i = 0; i < _employeeDuties.length; i++) {
+          if (_employeeDuties[i].employeeId.isNotEmpty) {
+            employeeMap["$i"] = _employeeDuties[i].employeeId;
+          }
+        }
+
+        // Prepare the request body
+        Map<String, dynamic> requestBody = {
+          "wkt_mulai": _startTime != null
               ? "${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}"
               : "09:00",
-          wktSelesai: _endTime != null
+          "wkt_selesai": _endTime != null
               ? "${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}"
               : "17:00",
-          tglTugas: _selectedDutyDate != null
+          "tgl_tugas": _selectedDutyDate != null
               ? DateFormat('yyyy-MM-dd').format(_selectedDutyDate!)
               : DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          keterangan: _description,
-          kendaraan: int.tryParse(_selectedTransport ?? '0') ?? 0,
-          employee: _employeeDuties
-              .map((e) => e.employeeId)
-              .where((id) => id.isNotEmpty)
-              .toList(),
-          nik: user.nik,
-          username: user.username,
-          approver: _selectedApproverId ?? '',
-          submit: 'submit', // 'submit' untuk mengirim ke approver
-        );
+          "keterangan": _description,
+          "kendaraan": int.tryParse(_selectedTransport ?? '0') ?? 0,
+          "employee": employeeMap,
+          "nik": user.nik,
+          "username": user.username,
+          "approver": _selectedApproverId ?? '',
+          "submit":
+              "submit", // 'save' untuk menyimpan draft, 'submit' untuk mengirim ke approver
+        };
 
-        if (widget.dutyToEdit != null) {
-          // Editing mode: Update existing duty based on 'id'
-          int index = widget.duties.indexWhere((duty) => duty.id == widget.dutyToEdit!.id);
-          if (index != -1) {
-            setState(() {
-              widget.duties[index] = dutyData;
-            });
-          }
+        // Determine the API endpoint and method based on editing mode
+        if (isEditing) {
+          // Editing mode: Update existing duty
+          final int dutyId = widget.dutyToEdit!.id;
+
+          // Make the API call to update duty
+          BaseResponse<String> response =
+              await _apiService.updateDuty(dutyId, requestBody);
+
           if (response.metadata.code == 200) {
-            // Berhasil mengirim ke approver
+            // Successfully sent duty to approver
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.response ?? 'Duty sent to approver successfully.')),
+              SnackBar(
+                  content: Text(response.response ??
+                      'Duty sent to approver successfully.')),
             );
-            // Anda dapat menambahkan logika tambahan di sini, seperti navigasi atau memperbarui UI
             Navigator.pop(context, 'sent');
           } else {
-            // Gagal mengirim ke approver
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.metadata.message ?? 'Failed to send to approver.')),
-            );
+            // Failed to send duty to approver
+            throw Exception(response.metadata.message ??
+                'Failed to send duty to approver.');
           }
         } else {
-          // Creating mode: Add new duty
-          widget.duties.add(dutyData);
+          // Creating mode: Create new duty
+          BaseResponse<String> response =
+              await _apiService.storeDuty(requestBody);
+
           if (response.metadata.code == 200) {
-            // Berhasil mengirim ke approver
+            // Successfully sent duty to approver
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.response ?? 'Duty sent to approver successfully.')),
+              SnackBar(
+                  content: Text(response.response ??
+                      'Duty sent to approver successfully.')),
             );
-            // Anda dapat menambahkan logika tambahan di sini, seperti navigasi atau memperbarui UI
             Navigator.pop(context, 'sent');
           } else {
-            // Gagal mengirim ke approver
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(response.metadata.message ?? 'Failed to send to approver.')),
-            );
+            // Failed to send duty to approver
+            throw Exception(response.metadata.message ??
+                'Failed to send duty to approver.');
           }
         }
       } catch (e) {
@@ -476,17 +429,9 @@ class CreateDutyFormState extends State<CreateDutyForm> {
         );
       } finally {
         setState(() {
-          widget.duties.add(dutyData);
           isLoading = false;
         });
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(widget.dutyToEdit != null
-                ? "Duty Updated! (Waiting)"
-                : "Duty Form Sent to Approver! (Waiting)")),
-      );
-      Navigator.pop(context, 'sent'); // Pass 'sent' as result
     }
   }
 
@@ -619,8 +564,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                     decoration: const InputDecoration(
                       labelText: "Select Employee",
                       border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12.0, vertical: 16.0),
                     ),
                   ),
                 ),
@@ -628,7 +573,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                 // Remove button if more than 1 row
                 if (_employeeDuties.length > 1 && !isRejected)
                   IconButton(
-                    icon: const Icon(Icons.remove_circle, color: Colors.redAccent),
+                    icon: const Icon(Icons.remove_circle,
+                        color: Colors.redAccent),
                     onPressed: () {
                       setState(() {
                         _employeeDuties.removeAt(index);
@@ -927,8 +873,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                   ? "Select Date"
                                   : DateFormat('dd-MM-yyyy')
                                       .format(_selectedDutyDate!),
-                              style:
-                                  _inputStyle.copyWith(color: Colors.teal.shade800),
+                              style: _inputStyle.copyWith(
+                                  color: Colors.teal.shade800),
                             ),
                           ),
                         ),
@@ -956,8 +902,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 16),
                                       decoration: BoxDecoration(
-                                        border:
-                                            Border.all(color: Colors.grey.shade400),
+                                        border: Border.all(
+                                            color: Colors.grey.shade400),
                                         borderRadius: BorderRadius.circular(8),
                                         color: Colors.teal.shade50,
                                       ),
@@ -1007,8 +953,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 12, vertical: 16),
                                       decoration: BoxDecoration(
-                                        border:
-                                            Border.all(color: Colors.grey.shade400),
+                                        border: Border.all(
+                                            color: Colors.grey.shade400),
                                         borderRadius: BorderRadius.circular(8),
                                         color: Colors.teal.shade50,
                                       ),
@@ -1094,8 +1040,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                         const SizedBox(height: 30),
 
                         // =========== REJECTION REASON SECTION (ONLY FOR EDITING REJECTED DUTIES) ===========
-                        if (isRejected)
-                          _buildRejectionReason(),
+                        if (isRejected) _buildRejectionReason(),
 
                         // =========== ACTION DROPDOWN AND SUBMIT BUTTON ===========
                         Align(
@@ -1149,7 +1094,8 @@ class CreateDutyFormState extends State<CreateDutyForm> {
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _getButtonColor(_selectedAction),
+                                backgroundColor:
+                                    _getButtonColor(_selectedAction),
                                 padding: const EdgeInsets.symmetric(
                                     vertical: 16, horizontal: 24),
                                 shape: RoundedRectangleBorder(
