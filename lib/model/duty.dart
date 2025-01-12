@@ -85,7 +85,7 @@ class Duty {
 
   @override
   String toString() {
-    return 'Duty(id: $id, startTime: $startTime, endTime: $endTime, dutyDate: $dutyDate, description: $description, transport: $transport, sptNumber: $sptNumber, sptLetterNumber: $sptLetterNumber, dateCreated: $dateCreated, createdAt: $createdAt, updatedAt: $updatedAt, status: ${status?.desc}, sapStatus: $sapStatus, sapError: $sapError)';
+    return 'Duty(id: $id, startTime: $startTime, endTime: $endTime, dutyDate: $dutyDate, description: $description, transport: $transport, sptNumber: $sptNumber, sptLetterNumber: $sptLetterNumber, dateCreated: $dateCreated, createdAt: $createdAt, updatedAt: $updatedAt, status: ${status.conceptorDesc}, sapStatus: $sapStatus, sapError: $sapError)';
   }
 
   /// Creates a copy of the current Duty with optional new values.
@@ -141,5 +141,5 @@ class Duty {
   }
 
   /// Getter to retrieve the status description
-  String get statusDescription => status.desc;
+  String get statusDescription => status.conceptorDesc;
 }

@@ -299,7 +299,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
                   'Position: Senior Programmer',
                   style: pw.TextStyle(fontSize: 16),
                 ),
-                if (duty.status.desc.toLowerCase() == "rejected") ...[
+                if (duty.status.conceptorDesc.toLowerCase() == "rejected") ...[
                   pw.SizedBox(height: 20),
                   pw.Divider(),
                   pw.SizedBox(height: 20),
@@ -524,7 +524,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     bool isMobile = false,
   }) {
     final String description = duty.description ?? "No Description";
-    final String status = duty.status.desc;
+    final String status = duty.status.conceptorDesc;
     final String dateStr = duty.dutyDate.toIso8601String();
     final String startTimeStr = duty.startTime;
     final String endTimeStr = duty.endTime;
@@ -774,7 +774,7 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
     required String rejectionReason,
     required DutyDetailData dutyDetailData,
   }) {
-    String status = duty.status.desc;
+    String status = duty.status.conceptorDesc;
     Color statusColor = Colors.grey;
     if (status.toLowerCase() == "approved")
       statusColor = Colors.green;

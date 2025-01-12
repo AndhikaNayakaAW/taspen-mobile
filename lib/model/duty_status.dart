@@ -1,23 +1,22 @@
 // lib/model/duty_status.dart
 
 enum DutyStatus {
-  draft("0", "Draft"),
-  waiting("1", "Waiting"),
-  approved("2", "Approved"),
-  rejected("3", "Rejected"),
-  returned("4", "Returned"),
-  needApprove("5", "Need Approve"),
-  returnStatus("6", "Return"),
-  approve("7", "Approve"),
-  reject("8", "Reject");
+  draft("0", "Draft", ""),
+  waiting("1", "Waiting", "Needs Approval"),
+  approved("2", "Approved", "Approve"),
+  rejected("3", "Rejected", "Reject"),
+  returned("4", "Returned", "Return");
 
   final String code;
-  final String description;
+  final String conceptorDescription;
+  final String approverDescription;
 
-  const DutyStatus(this.code, this.description);
+  const DutyStatus(
+      this.code, this.conceptorDescription, this.approverDescription);
 
   /// Retrieves the description based on the status code.
-  String get desc => description;
+  String get conceptorDesc => conceptorDescription;
+  String get approverDesc => approverDescription;
 
   /// Finds a DutyStatus by its code.
   static DutyStatus fromCode(String? code) {
