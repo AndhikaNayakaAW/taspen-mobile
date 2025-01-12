@@ -129,7 +129,7 @@ class CreateDutyFormState extends State<CreateDutyForm> {
           // If editing an existing duty, populate the form with its data
           if (widget.dutyToEdit != null) {
             final duty = widget.dutyToEdit!;
-            isRejected = duty.status.desc.toLowerCase() == "rejected";
+            isRejected = duty.status.conceptorDesc.toLowerCase() == "rejected";
             _description = duty.description ?? "";
 
             _selectedApproverId = widget.approvalToEdit?.nik;
