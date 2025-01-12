@@ -135,26 +135,22 @@ class _DutyDetailScreenState extends State<DutyDetailScreen> {
             ),
             TextButton(
               onPressed: () async {
-                // Implement the delete functionality
-                final String url =
-                    'http://easy-route-easy.apps.dev.taspen.co.id/api/no_token/duty/${duty.id}/delete';
-
                 try {
-                  final response = await http.delete(Uri.parse(url));
+                  final response = await _apiService.deleteDuty(duty.id);
 
-                  if (response.statusCode == 200) {
+                  if (response.metadata.code == 200) {
                     // Successfully deleted, navigate back
                     Navigator.of(context).pop(); // Dismiss dialog
                     Navigator.pop(context, 'deleted');
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Duty Deleted!")),
+                      SnackBar(content: Text(response.response.toString())),
                     );
                   } else {
                     Navigator.of(context).pop(); // Dismiss dialog
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                           content: Text(
-                              "Failed to delete duty. Status Code: ${response.statusCode}")),
+                              "Failed to delete duty. Status Code: ${response.metadata.code}")),
                     );
                   }
                 } catch (e) {

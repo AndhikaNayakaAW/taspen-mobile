@@ -278,10 +278,34 @@ class ApiService {
         return BaseResponse<String>.fromJson(
             jsonResponse, (data) => data as String);
       } else {
-        throw Exception('Failed to store duty: ${response.statusCode}');
+        throw Exception('Failed to update duty: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error storing duty: $e');
+      throw Exception('Error updating duty: $e');
+    }
+  }
+
+  /// Delete an existing duty
+  Future<BaseResponse<String>> deleteDuty(int dutyId) async {
+    final String url = '$baseUrl/api/no_token/duty/$dutyId/delete';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        return BaseResponse<String>.fromJson(
+            jsonResponse, (data) => data as String);
+      } else {
+        throw Exception('Failed to delete duty: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error deleting duty: $e');
     }
   }
 }

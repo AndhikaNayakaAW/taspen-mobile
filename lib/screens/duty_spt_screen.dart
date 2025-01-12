@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mobileapp/dto/base_response.dart';
 import 'package:mobileapp/dto/get_duty_list.dart';
 import 'package:mobileapp/model/duty.dart';
+import 'package:mobileapp/model/duty_status.dart';
 import 'package:mobileapp/model/user.dart';
 import 'package:mobileapp/services/auth_service.dart';
 import '../widgets/custom_bottom_app_bar.dart'; // Import the CustomBottomAppBar
@@ -137,10 +138,9 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   void filterDuties() {
     setState(() {
       filteredDuties = duties.where((duty) {
-        // bool matchesRole = selectedRole == "conceptor/maker"
-        //     ? _isConceptorMakerDuty(duty)
-        //     : _isApprovalDuty(duty);
-        bool matchesRole = true; // Always true for now
+        bool matchesRole = selectedRole == "conceptor/maker"
+            ? _isConceptorMakerDuty(duty)
+            : _isApprovalDuty(duty);
 
         bool matchesSearch = duty.description
                 ?.toLowerCase()
@@ -149,8 +149,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
         bool matchesStatus = selectedStatus == "All"
             ? true
-            : duty.status.desc.toLowerCase() ==
-                selectedStatus.toLowerCase();
+            : duty.status.desc.toLowerCase() == selectedStatus.toLowerCase();
 
         bool matchesStartDate = filterStartDate == null
             ? true
@@ -176,15 +175,20 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
   /// Determines if a duty belongs to Conceptor/Maker role
   bool _isConceptorMakerDuty(Duty duty) {
     // Define logic to determine if duty is for Conceptor/Maker
-    return ["Draft", "Waiting", "Returned", "Approved", "Rejected"]
-        .contains(duty.status);
+    return duty.status == DutyStatus.draft ||
+        duty.status == DutyStatus.waiting ||
+        duty.status == DutyStatus.returned ||
+        duty.status == DutyStatus.approved ||
+        duty.status == DutyStatus.rejected;
   }
 
   /// Determines if a duty belongs to Approval role
   bool _isApprovalDuty(Duty duty) {
     // Define logic to determine if duty is for Approval
-    return ["Need Approve", "Return", "Approve", "Reject"]
-        .contains(duty.status);
+    return duty.status == DutyStatus.needApprove ||
+        duty.status == DutyStatus.returnStatus ||
+        duty.status == DutyStatus.approve ||
+        duty.status == DutyStatus.reject;
   }
 
   /// Sorts the duties based on the selected column
