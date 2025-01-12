@@ -4,7 +4,7 @@ import 'package:mobileapp/model/duty.dart';
 
 class GetDutyList {
   final List<Duty> duty;
-  final List<dynamic>
+  final List<Duty>
       dutyApprove; // Assuming 'duty_approve' is a list that might be empty
 
   GetDutyList({
@@ -18,14 +18,15 @@ class GetDutyList {
 
     return GetDutyList(
       duty: dutyList.map((dutyJson) => Duty.fromJson(dutyJson)).toList(),
-      dutyApprove: dutyApproveList,
+      dutyApprove:
+          dutyApproveList.map((dutyJson) => Duty.fromJson(dutyJson)).toList(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'duty': duty.map((duty) => duty.toJson()).toList(),
-      'duty_approve': dutyApprove,
+      'duty_approve': dutyApprove.map((duty) => duty.toJson()).toList(),
     };
   }
 }

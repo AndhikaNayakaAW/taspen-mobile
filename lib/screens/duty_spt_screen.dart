@@ -111,7 +111,9 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
       // Check metadata code
       if (getDutyListResponse.metadata.code == 200) {
         setState(() {
-          duties = getDutyListResponse.response.duty;
+          duties = selectedRole == "conceptor/maker"
+              ? getDutyListResponse.response.duty
+              : getDutyListResponse.response.dutyApprove;
           filterDuties(); // Apply initial filters
         });
       } else {
