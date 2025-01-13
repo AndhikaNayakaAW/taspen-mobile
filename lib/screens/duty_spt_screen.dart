@@ -227,6 +227,10 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
           return ascending
               ? aValue.compareTo(bValue)
               : bValue.compareTo(aValue);
+        } else if (aValue is DutyStatus && bValue is DutyStatus) {
+          return ascending
+              ? aValue.index.compareTo(bValue.index)
+              : bValue.index.compareTo(aValue.index);
         } else {
           return ascending
               ? aValue.toString().compareTo(bValue.toString())
@@ -270,15 +274,13 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
         if (isStart) {
           filterStartDate = picked;
           // Ensure start date is before end date
-          if (filterEndDate != null &&
-              filterStartDate!.isAfter(filterEndDate!)) {
+          if (filterEndDate != null && filterStartDate!.isAfter(filterEndDate!)) {
             filterEndDate = null;
           }
         } else {
           filterEndDate = picked;
           // Ensure end date is after start date
-          if (filterStartDate != null &&
-              filterEndDate!.isBefore(filterStartDate!)) {
+          if (filterStartDate != null && filterEndDate!.isBefore(filterStartDate!)) {
             filterStartDate = null;
           }
         }
@@ -402,7 +404,11 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                         ),
                         const SizedBox(height: 15),
                         _buildStatusItem(
-                            "All", filteredDuties.length, Colors.teal),
+                          status: null, // Represents "All"
+                          label: "All",
+                          count: filteredDuties.length,
+                          color: Colors.teal,
+                        ),
                         const Divider(),
                         if (selectedRole == "conceptor/maker") ...[
                           const Text(
@@ -414,42 +420,35 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           ),
                           const SizedBox(height: 15),
                           _buildStatusItem(
-                              "Draft",
-                              duties
-                                  .where(
-                                      (duty) => duty.status == DutyStatus.draft)
-                                  .length,
-                              Colors.grey),
-                          _buildStatusItem(
-                            "Waiting",
-                            duties
-                                .where(
-                                    (duty) => duty.status == DutyStatus.waiting)
-                                .length,
-                            Colors.orange,
+                            status: DutyStatus.draft,
+                            label: DutyStatus.draft.conceptorDesc,
+                            count: duties.where((duty) => duty.status == DutyStatus.draft).length,
+                            color: DutyStatus.draft.color,
                           ),
                           _buildStatusItem(
-                              "Returned",
-                              duties
-                                  .where((duty) =>
-                                      duty.status == DutyStatus.returned)
-                                  .length,
-                              Colors.blue),
-                          _buildStatusItem(
-                            "Approved",
-                            duties
-                                .where((duty) =>
-                                    duty.status == DutyStatus.approved)
-                                .length,
-                            Colors.green,
+                            status: DutyStatus.waiting,
+                            label: DutyStatus.waiting.conceptorDesc,
+                            count: duties.where((duty) => duty.status == DutyStatus.waiting).length,
+                            color: DutyStatus.waiting.color,
                           ),
                           _buildStatusItem(
-                              "Rejected",
-                              duties
-                                  .where((duty) =>
-                                      duty.status == DutyStatus.rejected)
-                                  .length,
-                              Colors.red),
+                            status: DutyStatus.returned,
+                            label: DutyStatus.returned.conceptorDesc,
+                            count: duties.where((duty) => duty.status == DutyStatus.returned).length,
+                            color: DutyStatus.returned.color,
+                          ),
+                          _buildStatusItem(
+                            status: DutyStatus.approved,
+                            label: DutyStatus.approved.conceptorDesc,
+                            count: duties.where((duty) => duty.status == DutyStatus.approved).length,
+                            color: DutyStatus.approved.color,
+                          ),
+                          _buildStatusItem(
+                            status: DutyStatus.rejected,
+                            label: DutyStatus.rejected.conceptorDesc,
+                            count: duties.where((duty) => duty.status == DutyStatus.rejected).length,
+                            color: DutyStatus.rejected.color,
+                          ),
                         ] else if (selectedRole == "approval") ...[
                           const Text(
                             "AS AN APPROVAL",
@@ -460,33 +459,29 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                           ),
                           const SizedBox(height: 15),
                           _buildStatusItem(
-                              "Need Approve",
-                              duties
-                                  .where((duty) =>
-                                      duty.status == DutyStatus.waiting)
-                                  .length,
-                              Colors.orange),
+                            status: DutyStatus.waiting,
+                            label: DutyStatus.waiting.approverDesc,
+                            count: duties.where((duty) => duty.status == DutyStatus.waiting).length,
+                            color: DutyStatus.waiting.color,
+                          ),
                           _buildStatusItem(
-                              "Return",
-                              duties
-                                  .where((duty) =>
-                                      duty.status == DutyStatus.returned)
-                                  .length,
-                              Colors.blue),
+                            status: DutyStatus.returned,
+                            label: DutyStatus.returned.approverDesc,
+                            count: duties.where((duty) => duty.status == DutyStatus.returned).length,
+                            color: DutyStatus.returned.color,
+                          ),
                           _buildStatusItem(
-                              "Approve",
-                              duties
-                                  .where((duty) =>
-                                      duty.status == DutyStatus.approved)
-                                  .length,
-                              Colors.green),
+                            status: DutyStatus.approved,
+                            label: DutyStatus.approved.approverDesc,
+                            count: duties.where((duty) => duty.status == DutyStatus.approved).length,
+                            color: DutyStatus.approved.color,
+                          ),
                           _buildStatusItem(
-                              "Reject",
-                              duties
-                                  .where((duty) =>
-                                      duty.status == DutyStatus.rejected)
-                                  .length,
-                              Colors.red),
+                            status: DutyStatus.rejected,
+                            label: DutyStatus.rejected.approverDesc,
+                            count: duties.where((duty) => duty.status == DutyStatus.rejected).length,
+                            color: DutyStatus.rejected.color,
+                          ),
                         ],
                       ],
                     ),
@@ -862,37 +857,35 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                             ),
                             const SizedBox(height: 15),
                             _buildStatusItem(
-                                "Draft",
-                                duties
-                                    .where((duty) => duty.status == "Draft")
-                                    .length,
-                                Colors.grey),
-                            _buildStatusItem(
-                              "Waiting",
-                              duties
-                                  .where((duty) => duty.status == "Waiting")
-                                  .length,
-                              Colors.orange,
+                              status: DutyStatus.draft,
+                              label: DutyStatus.draft.conceptorDesc,
+                              count: duties.where((duty) => duty.status == DutyStatus.draft).length,
+                              color: DutyStatus.draft.color,
                             ),
                             _buildStatusItem(
-                                "Returned",
-                                duties
-                                    .where((duty) => duty.status == "Returned")
-                                    .length,
-                                Colors.blue),
-                            _buildStatusItem(
-                              "Approved",
-                              duties
-                                  .where((duty) => duty.status == "Approved")
-                                  .length,
-                              Colors.green,
+                              status: DutyStatus.waiting,
+                              label: DutyStatus.waiting.conceptorDesc,
+                              count: duties.where((duty) => duty.status == DutyStatus.waiting).length,
+                              color: DutyStatus.waiting.color,
                             ),
                             _buildStatusItem(
-                                "Rejected",
-                                duties
-                                    .where((duty) => duty.status == "Rejected")
-                                    .length,
-                                Colors.red),
+                              status: DutyStatus.returned,
+                              label: DutyStatus.returned.conceptorDesc,
+                              count: duties.where((duty) => duty.status == DutyStatus.returned).length,
+                              color: DutyStatus.returned.color,
+                            ),
+                            _buildStatusItem(
+                              status: DutyStatus.approved,
+                              label: DutyStatus.approved.conceptorDesc,
+                              count: duties.where((duty) => duty.status == DutyStatus.approved).length,
+                              color: DutyStatus.approved.color,
+                            ),
+                            _buildStatusItem(
+                              status: DutyStatus.rejected,
+                              label: DutyStatus.rejected.conceptorDesc,
+                              count: duties.where((duty) => duty.status == DutyStatus.rejected).length,
+                              color: DutyStatus.rejected.color,
+                            ),
                           ] else if (selectedRole == "approval") ...[
                             const Text(
                               "AS AN APPROVAL",
@@ -903,30 +896,29 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
                             ),
                             const SizedBox(height: 15),
                             _buildStatusItem(
-                                "Need Approve",
-                                duties
-                                    .where(
-                                        (duty) => duty.status == "Need Approve")
-                                    .length,
-                                Colors.orange),
+                              status: DutyStatus.waiting,
+                              label: DutyStatus.waiting.approverDesc,
+                              count: duties.where((duty) => duty.status == DutyStatus.waiting).length,
+                              color: DutyStatus.waiting.color,
+                            ),
                             _buildStatusItem(
-                                "Return",
-                                duties
-                                    .where((duty) => duty.status == "Return")
-                                    .length,
-                                Colors.blue),
+                              status: DutyStatus.returned,
+                              label: DutyStatus.returned.approverDesc,
+                              count: duties.where((duty) => duty.status == DutyStatus.returned).length,
+                              color: DutyStatus.returned.color,
+                            ),
                             _buildStatusItem(
-                                "Approve",
-                                duties
-                                    .where((duty) => duty.status == "Approve")
-                                    .length,
-                                Colors.green),
+                              status: DutyStatus.approved,
+                              label: DutyStatus.approved.approverDesc,
+                              count: duties.where((duty) => duty.status == DutyStatus.approved).length,
+                              color: DutyStatus.approved.color,
+                            ),
                             _buildStatusItem(
-                                "Reject",
-                                duties
-                                    .where((duty) => duty.status == "Reject")
-                                    .length,
-                                Colors.red),
+                              status: DutyStatus.rejected,
+                              label: DutyStatus.rejected.approverDesc,
+                              count: duties.where((duty) => duty.status == DutyStatus.rejected).length,
+                              color: DutyStatus.rejected.color,
+                            ),
                           ],
                           const SizedBox(height: 20),
 
@@ -1044,7 +1036,8 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
                           // Pagination
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 "Showing ${startIndex + 1} to "
@@ -1226,85 +1219,81 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
   /// Get dropdown items based on selected role
   List<DropdownMenuItem<String>> _getStatusDropdownItems() {
+    List<DropdownMenuItem<String>> items = [
+      const DropdownMenuItem(
+        value: "All",
+        child: Text("All"),
+      ),
+    ];
+
+    List<DutyStatus> statuses = [];
+
     if (selectedRole == "conceptor/maker") {
-      return [
-        const DropdownMenuItem(
-          value: "All",
-          child: Text("All"),
-        ),
-        DropdownMenuItem(
-          value: DutyStatus.draft.code, // "0"
-          child: Text(DutyStatus.draft.conceptorDesc),
-        ),
-        DropdownMenuItem(
-          value: DutyStatus.waiting.code, // "1"
-          child: Text(DutyStatus.waiting.conceptorDesc),
-        ),
-        DropdownMenuItem(
-          value: DutyStatus.returned.code, // "4"
-          child: Text(DutyStatus.returned.conceptorDesc),
-        ),
-        DropdownMenuItem(
-          value: DutyStatus.approved.code, // "2"
-          child: Text(DutyStatus.approved.conceptorDesc),
-        ),
-        DropdownMenuItem(
-          value: DutyStatus.rejected.code, // "3"
-          child: Text(DutyStatus.rejected.conceptorDesc),
-        ),
+      statuses = [
+        DutyStatus.draft,
+        DutyStatus.waiting,
+        DutyStatus.returned,
+        DutyStatus.approved,
+        DutyStatus.rejected,
       ];
     } else {
-      return [
-        const DropdownMenuItem(
-          value: "All",
-          child: Text("All"),
-        ),
-        DropdownMenuItem(
-          value: DutyStatus.waiting.code, // "1"
-          child: Text(DutyStatus.waiting.approverDesc), // "Needs Approval"
-        ),
-        DropdownMenuItem(
-          value: DutyStatus.returned.code, // "4"
-          child: Text(DutyStatus.returned.approverDesc), // "Return"
-        ),
-        DropdownMenuItem(
-          value: DutyStatus.approved.code, // "2"
-          child: Text(DutyStatus.approved.approverDesc), // "Approve"
-        ),
-        DropdownMenuItem(
-          value: DutyStatus.rejected.code, // "3"
-          child: Text(DutyStatus.rejected.approverDesc), // "Reject"
-        ),
+      statuses = [
+        DutyStatus.waiting,
+        DutyStatus.returned,
+        DutyStatus.approved,
+        DutyStatus.rejected,
       ];
     }
+
+    items.addAll(statuses.map((status) {
+      String description = selectedRole == "conceptor/maker"
+          ? status.conceptorDesc
+          : status.approverDesc;
+      return DropdownMenuItem(
+        value: status.code,
+        child: Text(description),
+      );
+    }).toList());
+
+    return items;
   }
 
   /// Show sidebar status item
-  Widget _buildStatusItem(String status, int count, Color color) {
+  Widget _buildStatusItem({
+    DutyStatus? status,
+    required String label,
+    required int count,
+    required Color color,
+  }) {
+    bool isSelected;
+    String statusCode = status?.code ?? "All";
+
+    isSelected = selectedStatus == statusCode;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: InkWell(
         onTap: () {
           setState(() {
-            selectedStatus = status;
+            selectedStatus = statusCode;
             filterDuties();
           });
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
           decoration: BoxDecoration(
-            color: selectedStatus == status
-                ? color.withOpacity(0.1)
-                : Colors.transparent,
+            color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  status,
+                  label,
                   style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w500, color: color),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: color),
                 ),
               ),
               CircleAvatar(
@@ -1324,28 +1313,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
   /// Table row for large screens
   Widget _buildTableRow({required Duty duty}) {
-    // Choose color
-    Color statusColor = Colors.grey;
-    switch (duty.status) {
-      case DutyStatus.draft:
-        statusColor = Colors.grey;
-        break;
-      case DutyStatus.waiting:
-        statusColor = Colors.orange;
-        break;
-      case DutyStatus.approved:
-        statusColor = Colors.green;
-        break;
-      case DutyStatus.rejected:
-        statusColor = Colors.red;
-        break;
-      case DutyStatus.returned:
-        statusColor = Colors.blue;
-        break;
-
-      default:
-        statusColor = Colors.grey; // Fallback color
-    }
+    Color statusColor = duty.status.color;
 
     return InkWell(
       onTap: () {
@@ -1483,36 +1451,7 @@ class _DutySPTScreenState extends State<DutySPTScreen> {
 
   /// Card-like duty item for mobile screens
   Widget _buildMobileDutyCard({required Duty duty}) {
-    // Choose color
-    Color statusColor = Colors.grey;
-    switch (duty.status) {
-      case "Approved":
-        statusColor = Colors.green;
-        break;
-      case "Waiting":
-        statusColor = Colors.orange;
-        break;
-      case "Returned":
-        statusColor = Colors.blue;
-        break;
-      case "Rejected":
-        statusColor = Colors.red;
-        break;
-      case "Need Approve":
-        statusColor = Colors.orange;
-        break;
-      case "Return":
-        statusColor = Colors.blue;
-        break;
-      case "Approve":
-        statusColor = Colors.green;
-        break;
-      case "Reject":
-        statusColor = Colors.red;
-        break;
-      default:
-        statusColor = Colors.grey;
-    }
+    Color statusColor = duty.status.color;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
